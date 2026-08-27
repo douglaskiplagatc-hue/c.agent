@@ -11,12 +11,14 @@ from agent.tools import (
     search_code,
     create_file,
     edit_file,
+    patch_file,
     run_command,
     git_status,
     git_checkpoint,
-    git_rollback,analyze_python_file,
+    git_rollback,
+    analyze_python_file,search_project,read_project_memory,
+update_project_memory,
 )
-
 from agent.prompts import SYSTEM_PROMPT, PLANNING_PROMPT
 from agent.state import TaskState
 from agent.controller import (
@@ -86,6 +88,29 @@ TOOLS = [
         },
     },
     {
+    "type": "function",
+    "function": {
+        "name": "search_project",
+        "description": (
+            "Search the project index for relevant "
+            "files, Python functions, and classes."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "Concept, filename, function, "
+                        "or class to search for."
+                    ),
+                }
+            },
+            "required": ["query"],
+        },
+    },
+},
+    {
         "type": "function",
         "function": {
             "name": "create_file",
@@ -107,6 +132,36 @@ TOOLS = [
             },
         },
     },
+    {
+    "type": "function",
+    "function": {
+        "name": "patch_file",
+        "description": (
+            "Safely replace one exact section of a file. "
+            "The replacement is refused if the section is "
+            "missing or appears more than once."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                },
+                "old_text": {
+                    "type": "string",
+                },
+                "new_text": {
+                    "type": "string",
+                },
+            },
+            "required": [
+                "file_path",
+                "old_text",
+                "new_text",
+            ],
+        },
+    },
+},
     {
         "type": "function",
         "function": {
@@ -195,6 +250,44 @@ TOOLS = [
 {
     "type": "function",
     "function": {
+        "name": "read_project_memory",
+        "description": (
+            "Read the persistent project memory."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+},
+{
+    "type": "function",
+    "function": {
+        "name": "update_project_memory",
+        "description": (
+            "Update or create a section in persistent "
+            "project memory."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "section": {
+                    "type": "string",
+                },
+                "content": {
+                    "type": "string",
+                },
+            },
+            "required": [
+                "section",
+                "content",
+            ],
+        },
+    },
+},
+{
+    "type": "function",
+    "function": {
         "name": "analyze_python_file",
         "description": (
             "Analyze a Python file and return "
@@ -227,6 +320,7 @@ AVAILABLE_TOOLS = {
     "git_checkpoint": git_checkpoint,
     "git_rollback": git_rollback,
     "analyze_python_file": analyze_python_file,
+    "patch_file": patch_file,"search_project": search_project,
 }
 
 

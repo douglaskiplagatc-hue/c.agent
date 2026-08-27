@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-
+from agent.indexer import search_index
 
 WORKSPACE = Path("workspace").resolve()
 
@@ -330,6 +330,196 @@ def analyze_python_file(file_path: str) -> dict:
             "success": False,
             "error": (
                 f"Python syntax error: {error}"
+            ),
+        }
+
+    except Exception as error:
+
+        return {
+            "success": False,
+            "error": str(error),
+        }
+def patch_file(
+    file_path: str,
+    old_text: str,
+    new_text: str,
+) -> dict:
+    """
+    Safely replace an exact section of a file.
+
+    The replacement only happens when old_text occurs
+    exactly once.
+    """
+
+    path = Path(file_path)
+
+    if not path.exists():
+        return {
+            "success": False,
+            "error": f"File not found: {file_path}",
+        }
+
+    try:
+        content = path.read_text(
+            encoding="utf-8"
+        )
+
+        occurrences = content.count(old_text)
+
+        if occurrences == 0:
+            return {
+                "success": False,
+                "error": (
+                    "The requested section was not found "
+                    "in the file."
+                ),
+            }
+
+        if occurrences > 1:
+            return {
+                "success": False,
+                "error": (
+                    "The requested section occurs "
+                    f"{occurrences} times. "
+                    "Refusing to guess which one to modify."
+                ),
+            }
+
+        updated = content.replace(
+            old_text,
+            new_text,
+            1,
+        )
+
+        path.write_text(
+            updated,
+            encoding="utf-8",
+        )
+
+        return {
+            "success": True,
+            "file": file_path,
+            "message": "Patch applied successfully.",
+        }
+
+    except Exception as error:
+
+        return {
+            "success": False,
+            "error": str(error),
+        }
+def search_project(query: str) -> dict:
+    """Search the indexed project structure."""
+
+    try:
+
+        results = search_index(query)
+
+        return {
+            "success": True,
+            "query": query,
+            "results": results[:20],
+        }
+
+    except Exception as error:
+
+        return {
+            "success": False,
+            "error": str(error),
+        }
+def read_project_memory() -> dict:
+    """Read persistent project memory."""
+
+    path = Path("memory/project.md")
+
+    if not path.exists():
+        return {
+            "success": True,
+            "content": "",
+        }
+
+    try:
+        return {
+            "success": True,
+            "content": path.read_text(
+                encoding="utf-8"
+            ),
+        }
+
+    except Exception as error:
+        return {
+            "success": False,
+            "error": str(error),
+        }
+def update_project_memory(
+    section: str,
+    content: str,
+) -> dict:
+    """Update one section of project memory."""
+
+    path = Path("memory/project.md")
+
+    try:
+
+        if path.exists():
+            existing = path.read_text(
+                encoding="utf-8"
+            )
+        else:
+            existing = "# Project Memory\n"
+
+        heading = f"## {section}"
+
+        lines = existing.splitlines()
+
+        start = None
+
+        for i, line in enumerate(lines):
+            if line.strip() == heading:
+                start = i
+                break
+
+        if start is not None:
+
+            end = len(lines)
+
+            for i in range(
+                start + 1,
+                len(lines),
+            ):
+                if lines[i].startswith("## "):
+                    end = i
+                    break
+
+            lines[start:end] = [
+                heading,
+                "",
+                content.strip(),
+                "",
+            ]
+
+            updated = "\n".join(lines)
+
+        else:
+
+            updated = (
+                existing.rstrip()
+                + "\n\n"
+                + heading
+                + "\n\n"
+                + content.strip()
+                + "\n"
+            )
+
+        path.write_text(
+            updated,
+            encoding="utf-8",
+        )
+
+        return {
+            "success": True,
+            "message": (
+                f"Memory section '{section}' updated."
             ),
         }
 

@@ -26,3 +26,7 @@ This memory contains persistent information about the project being worked on.
 8. Analyze errors.
 9. Fix problems.
 10. Verify again.
+
+## Architecture
+
+This project uses Python.
