@@ -164,3 +164,33 @@ class AgentController:
         self.set_phase(
             TaskPhase.FAILED
         )
+def is_repeated_failed_action(
+    self,
+    tool_name,
+    arguments,
+):
+
+    for failure in self.state.failed_actions:
+
+        if (
+            failure["tool"] == tool_name
+            and failure["arguments"] == arguments
+        ):
+            return True
+
+    return False
+def is_repeated_failed_action(
+    self,
+    tool_name,
+    arguments,
+):
+
+    for failure in self.state.failed_actions:
+
+        if (
+            failure["tool"] == tool_name
+            and failure["arguments"] == arguments
+        ):
+            return True
+
+    return False

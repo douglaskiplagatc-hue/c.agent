@@ -529,3 +529,81 @@ def update_project_memory(
             "success": False,
             "error": str(error),
         }
+def edit_file(
+    file_path: str,
+    old_text: str,
+    new_text: str,
+) -> dict:
+
+    path = Path(file_path)
+
+    if not path.exists():
+        return {
+            "success": False,
+            "error": f"File not found: {file_path}",
+            "action": "edit_file",
+        }
+
+    try:
+        content = path.read_text(
+            encoding="utf-8"
+        )
+
+        occurrences = content.count(old_text)
+
+        if occurrences == 0:
+            return {
+                "success": False,
+                "error": (
+                    f"The requested old_text was not found "
+                    f"in {file_path}."
+                ),
+                "hint": (
+                    "Read the file again and use an exact "
+                    "section from the actual file contents."
+                ),
+                "action": "edit_file",
+                "file_path": file_path,
+            }
+
+        if occurrences > 1:
+            return {
+                "success": False,
+                "error": (
+                    f"The requested old_text occurs "
+                    f"{occurrences} times in {file_path}."
+                ),
+                "hint": (
+                    "Use a larger, unique section of the "
+                    "file or use patch_file."
+                ),
+                "action": "edit_file",
+                "file_path": file_path,
+            }
+
+        updated = content.replace(
+            old_text,
+            new_text,
+            1,
+        )
+
+        path.write_text(
+            updated,
+            encoding="utf-8",
+        )
+
+        return {
+            "success": True,
+            "action": "edit_file",
+            "file_path": file_path,
+            "message": "File edited successfully.",
+        }
+
+    except Exception as error:
+
+        return {
+            "success": False,
+            "error": str(error),
+            "action": "edit_file",
+            "file_path": file_path,
+        }

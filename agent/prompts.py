@@ -154,6 +154,35 @@ A coding task involving modifications is complete only when:
 4. No unresolved tool errors remain.
 
 For read-only tasks, successful inspection is sufficient.
+
+REPAIR ANTI-LOOP RULES:
+
+When a tool fails:
+
+- Do not immediately repeat the same tool call with the same arguments.
+- Treat the failure as evidence.
+- Inspect the relevant file again if the failure concerns file contents.
+- Compare the requested text against the actual file.
+- Change the approach before retrying.
+- If an edit fails because old_text was not found, NEVER repeat
+  that exact old_text without first reading the file again.
+- If the same action has failed twice, choose a different strategy.
+- Do not waste repair attempts repeating an action that has already failed.
+
+EXACT EDIT RULE:
+
+When using edit_file:
+
+1. Read the target file first.
+2. Copy old_text exactly from the returned file contents.
+3. Do not use:
+   - ...
+   - placeholders
+   - descriptions
+   - abbreviated code
+   - guessed text
+4. old_text must be literal source code that exists in the file.
+5. Prefer patch_file for precise existing-code modifications.
 PROJECT MEMORY:
 
 {project_memory}

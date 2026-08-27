@@ -19,6 +19,7 @@ class TaskState:
         self.verifications = []
 
         self.tool_history = []
+        self.failed_actions = []
 
         self.memory_loaded = False
 
@@ -77,3 +78,54 @@ class TaskState:
             "errors": self.errors,
             "verifications": self.verifications,
         }
+def record_failed_action(
+    self,
+    tool_name,
+    arguments,
+    error,
+):
+
+    self.failed_actions.append({
+        "tool": tool_name,
+        "arguments": arguments,
+        "error": error,
+    })
+def recent_failures(self):
+
+    return self.failed_actions[-5:]
+def repair_context(self):
+
+    failures = self.recent_failures()
+
+    if not failures:
+        return ""
+
+    lines = [
+        "PREVIOUS FAILED ACTIONS:",
+        "",
+    ]
+
+    for failure in failures:
+
+        lines.append(
+            f"Tool: {failure['tool']}"
+        )
+
+        lines.append(
+            f"Arguments: {failure['arguments']}"
+        )
+
+        lines.append(
+            f"Error: {failure['error']}"
+        )
+
+        lines.append("")
+
+    lines.extend([
+        "IMPORTANT:",
+        "Do not repeat the failed action blindly.",
+        "Use the failure as evidence.",
+        "Inspect the relevant code before attempting another repair.",
+    ])
+
+    return "\n".join(lines)
