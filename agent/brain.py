@@ -19,7 +19,10 @@ from agent.tools import (
 
 from agent.prompts import SYSTEM_PROMPT, PLANNING_PROMPT
 from agent.state import TaskState
-
+from agent.controller import (
+    AgentController,
+    TaskPhase,
+)
 
 client = OpenAI(
     api_key=LLM7_API_KEY,
@@ -302,7 +305,13 @@ def run_agent(objective: str) -> str:
     state = TaskState(
         objective=objective
     )
+    controller = AgentController(
+        state
+    )
 
+    controller.set_phase(
+    TaskPhase.CHECKPOINT
+)
     state.plan = create_plan(
         objective,
         project_memory,
@@ -310,6 +319,12 @@ def run_agent(objective: str) -> str:
 
     print("\n[Agent Plan]")
     print(state.plan)
+    if not controller.prepare_workspace():
+        print(
+        "[Agent] Git checkpoint unavailable."
+    )
+        controller.begin_inspection()
+
 
     messages = [
         {
@@ -425,13 +440,10 @@ Verify your work before finishing.
                             "success",
                             False,
                         ):
-
-                            state.attempts += 1
-
                             print(
-                                "\n[Agent detected "
-                                "a failure]"
-                            )
+                "\n[Agent detected a command failure]"
+            )
+                            controller.begin_repair()
 
                         else:
 
