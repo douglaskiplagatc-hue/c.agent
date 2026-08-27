@@ -1,45 +1,79 @@
-from dataclasses import dataclass, field
-
-
-@dataclass
 class TaskState:
 
-    objective: str
+    def __init__(self, objective):
 
-    plan: str = ""
+        self.objective = objective
 
-    inspected_files: list[str] = field(
-        default_factory=list
-    )
+        self.plan = ""
 
-    modified_files: list[str] = field(
-        default_factory=list
-    )
+        self.attempts = 0
+        self.max_attempts = 5
 
-    commands: list[str] = field(
-        default_factory=list
-    )
+        self.completed = False
+        self.success = False
 
-    errors: list[str] = field(
-        default_factory=list
-    )
+        self.modified_files = []
+        self.inspected_files = []
 
-    completed: bool = False
+        self.errors = []
+        self.verifications = []
 
-    attempts: int = 0
+        self.tool_history = []
 
-    max_attempts: int = 8
+        self.memory_loaded = False
 
-    def record_error(self, error: str):
-        self.errors.append(error)
+        self.checkpoint_created = False
 
-    def record_command(self, command: str):
-        self.commands.append(command)
+    def record_tool(
+        self,
+        tool_name,
+        arguments,
+        result,
+    ):
 
-    def record_modified_file(self, file_path: str):
+        self.tool_history.append({
+            "tool": tool_name,
+            "arguments": arguments,
+            "result": result,
+        })
+
+    def record_error(self, error):
+
+        self.errors.append(str(error))
+
+    def record_verification(
+        self,
+        description,
+        success,
+    ):
+
+        self.verifications.append({
+            "description": description,
+            "success": success,
+        })
+
+    def record_inspection(self, file_path):
+
+        if file_path not in self.inspected_files:
+            self.inspected_files.append(file_path)
+
+    def record_modification(self, file_path):
+
         if file_path not in self.modified_files:
             self.modified_files.append(file_path)
 
-    def record_inspected_file(self, file_path: str):
-        if file_path not in self.inspected_files:
-            self.inspected_files.append(file_path)
+    def can_retry(self):
+
+        return self.attempts < self.max_attempts
+
+    def summary(self):
+
+        return {
+            "objective": self.objective,
+            "success": self.success,
+            "attempts": self.attempts,
+            "inspected_files": self.inspected_files,
+            "modified_files": self.modified_files,
+            "errors": self.errors,
+            "verifications": self.verifications,
+        }

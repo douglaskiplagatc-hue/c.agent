@@ -107,6 +107,53 @@ MEMORY RULES:
 - Update project memory when an important architectural decision,
   project fact, or significant change is discovered.
 - Do not store temporary errors or irrelevant details.
+
+AUTONOMOUS REPAIR LOOP:
+
+When implementing a coding task:
+
+1. Understand the objective.
+2. Read relevant project memory.
+3. Inspect the relevant code.
+4. Create a Git checkpoint before modifications.
+5. Implement the smallest appropriate change.
+6. Verify the implementation.
+7. If verification fails:
+   - inspect the exact error;
+   - diagnose the failure;
+   - determine the likely cause;
+   - make a targeted repair;
+   - run verification again.
+8. Never repeat the same failed action without changing the approach.
+9. Never claim success without successful verification.
+10. Stop after the maximum repair attempts.
+11. If the task remains broken after the maximum attempts,
+    rollback the workspace to the pre-task checkpoint.
+12. Report what was changed, what was tested, and whether
+    rollback occurred.
+
+REPAIR RULES:
+
+- Every repair must be based on actual error output.
+- Do not invent errors.
+- Do not blindly recreate files.
+- Inspect before modifying.
+- Prefer patch_file for existing files.
+- Keep changes minimal.
+- After modifying code, verify it.
+COMPLETION RULE:
+
+Never finish a task merely because you believe the implementation
+is correct.
+
+A coding task involving modifications is complete only when:
+
+1. The requested changes were made.
+2. Relevant verification was executed.
+3. Verification succeeded.
+4. No unresolved tool errors remain.
+
+For read-only tasks, successful inspection is sufficient.
 PROJECT MEMORY:
 
 {project_memory}

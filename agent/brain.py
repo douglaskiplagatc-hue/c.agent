@@ -562,14 +562,51 @@ Verify your work before finishing.
                             print(
                 "\n[Agent detected a command failure]"
             )
-                            controller.begin_repair()
+                            state.record_error(
+                result.get(
+                    "stderr",
+                    result.get(
+                        "error",
+                        "Command failed",
+                    ),
+                )
+            )
+                            controller.begin_diagnosis()
+                            diagnosis = (
+                result.get("stderr")
+                or result.get("error")
+                or result.get("stdout")
+                or "Unknown failure"
+            )
+                            print(
+                "\n[Failure Diagnosis]"
+            )
+                            print(diagnosis)
+                            if controller.can_repair():
+                                controller.begin_repair()
 
                         else:
 
                             print(
-                                "\n[Verification "
-                                "successful]"
-                            )
+                    "\n[Agent] Maximum repair "
+                    "attempts reached."
+                )
+                            controller.rollback()
+                            controller.fail()
+                            break
+                else:
+                    print(
+                "\n[Verification successful]"
+            )
+
+                    state.record_verification(
+                result.get(
+                    "command",
+                    "command",
+                ),
+                True,
+            )
+
 
             except Exception as error:
 
