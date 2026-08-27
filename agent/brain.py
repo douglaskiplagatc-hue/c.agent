@@ -14,7 +14,7 @@ from agent.tools import (
     run_command,
     git_status,
     git_checkpoint,
-    git_rollback,
+    git_rollback,analyze_python_file,
 )
 
 from agent.prompts import SYSTEM_PROMPT, PLANNING_PROMPT
@@ -192,6 +192,27 @@ TOOLS = [
         },
     },
 },
+{
+    "type": "function",
+    "function": {
+        "name": "analyze_python_file",
+        "description": (
+            "Analyze a Python file and return "
+            "its actual function definitions."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                }
+            },
+            "required": [
+                "file_path"
+            ],
+        },
+    },
+},
 ]
 
 
@@ -205,6 +226,7 @@ AVAILABLE_TOOLS = {
     "git_status": git_status,
     "git_checkpoint": git_checkpoint,
     "git_rollback": git_rollback,
+    "analyze_python_file": analyze_python_file,
 }
 
 
@@ -311,6 +333,9 @@ def run_agent(objective: str) -> str:
 
     controller.set_phase(
     TaskPhase.CHECKPOINT
+)
+    controller.set_phase(
+    TaskPhase.PLANNING
 )
     state.plan = create_plan(
         objective,

@@ -276,3 +276,66 @@ def git_rollback() -> dict:
         "stdout": result.stdout,
         "stderr": result.stderr,
     }
+import ast
+
+
+def analyze_python_file(file_path: str) -> dict:
+    """Analyze the structure of a Python file."""
+
+    path = Path(file_path)
+
+    if not path.exists():
+        return {
+            "success": False,
+            "error": f"File not found: {file_path}",
+        }
+
+    try:
+        source = path.read_text(
+            encoding="utf-8"
+        )
+
+        tree = ast.parse(source)
+
+        functions = []
+
+        for node in ast.walk(tree):
+
+            if isinstance(
+                node,
+                (
+                    ast.FunctionDef,
+                    ast.AsyncFunctionDef,
+                ),
+            ):
+
+                functions.append({
+                    "name": node.name,
+                    "line": node.lineno,
+                    "async": isinstance(
+                        node,
+                        ast.AsyncFunctionDef,
+                    ),
+                })
+
+        return {
+            "success": True,
+            "file": file_path,
+            "functions": functions,
+        }
+
+    except SyntaxError as error:
+
+        return {
+            "success": False,
+            "error": (
+                f"Python syntax error: {error}"
+            ),
+        }
+
+    except Exception as error:
+
+        return {
+            "success": False,
+            "error": str(error),
+        }

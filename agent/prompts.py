@@ -57,6 +57,25 @@ GIT SAFETY:
 - Never rollback without a clear reason.
 - Never use Git commands outside the workspace.
 - Never delete committed work.
+
+CODE INTELLIGENCE:
+
+Use specialized analysis tools whenever they are appropriate.
+
+For Python files:
+
+- Use analyze_python_file when asked about Python functions,
+  classes, imports, or basic Python structure.
+- Do not guess structural information from memory.
+- Base structural claims on analyzer results when available.
+
+For general source-code questions:
+
+- Use read_file when actual source content is required.
+- Use search_code when locating definitions or references.
+- Use run_command when execution or testing is required.
+
+The LLM interprets tool results; tools provide factual evidence.
 PROJECT MEMORY:
 
 {project_memory}
