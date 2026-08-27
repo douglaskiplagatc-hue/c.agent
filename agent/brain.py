@@ -555,21 +555,46 @@ def update_state(
 # ============================================================
 # PLANNING
 # ============================================================
+def create_plan(objective, project_memory):
 
-def create_plan(
-    objective,
-    project_memory,
-):
+    read_only = not objective_requires_modification(objective)
+
+    if read_only:
+        planning_instruction = """
+This is a READ-ONLY task.
+
+The user explicitly wants information/analysis and does NOT want
+files modified.
+
+DO NOT create an implementation plan.
+DO NOT propose adding, editing, fixing, removing, or creating code.
+
+Your plan must contain ONLY:
+1. The file(s) that need to be inspected.
+2. The inspection tools required.
+3. What information must be extracted.
+4. How the result will be verified without modifying files.
+"""
+
+    else:
+        planning_instruction = """
+This task requires modification.
+
+Create a precise implementation plan.
+Inspect the relevant files before modifying them.
+Modify only files necessary for the user's objective.
+Verify the modification afterward.
+"""
 
     response = client.chat.completions.create(
-
         model="default",
-
         messages=[
             {
                 "role": "system",
                 "content": (
                     PLANNING_PROMPT
+                    + "\n\n"
+                    + planning_instruction
                     + "\n\nPROJECT MEMORY:\n"
                     + project_memory
                 ),
@@ -581,12 +606,7 @@ def create_plan(
         ],
     )
 
-    return (
-        response.choices[0]
-        .message.content
-        or ""
-    )
-
+    return response.choices[0].message.content
 
 # ============================================================
 # PYTHON VERIFICATION
@@ -702,48 +722,46 @@ def record_failure(
 
     return False
 def objective_requires_modification(objective):
-    objective_lower = objective.lower()
 
-    modification_words = [
-        "fix",
-        "modify",
-        "edit",
-        "change",
-        "update",
-        "repair",
-        "implement",
-        "create",
-        "refactor",
-        "remove",
-        "add",
-        "write",
-    ]
+    text = objective.lower().strip()
 
-    read_only_phrases = [
-        "read",
-        "tell me",
-        "show me",
-        "list",
-        "analyze",
-        "inspect",
-        "explain",
-        "what functions",
-        "what classes",
+    explicit_read_only = [
         "do not modify",
         "don't modify",
+        "do not change",
+        "don't change",
+        "read-only",
+        "read only",
+        "without modifying",
+        "without changing",
+        "without editing",
     ]
 
     if any(
-        phrase in objective_lower
-        for phrase in read_only_phrases
+        phrase in text
+        for phrase in explicit_read_only
     ):
         return False
 
-    return any(
-        word in objective_lower
-        for word in modification_words
-    )
+    modification_phrases = [
+        "fix ",
+        "modify ",
+        "edit ",
+        "change ",
+        "update ",
+        "repair ",
+        "implement ",
+        "create ",
+        "refactor ",
+        "remove ",
+        "add ",
+        "write ",
+    ]
 
+    return any(
+        phrase in text
+        for phrase in modification_phrases
+    )
 # ============================================================
 # AGENT
 # ============================================================
