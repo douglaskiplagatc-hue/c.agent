@@ -16,21 +16,26 @@ from agent.tools import (
     git_status,
     git_checkpoint,
     git_rollback,
-    analyze_python_file,search_project,read_project_memory,
-update_project_memory,
+    analyze_python_file,
+    search_project,
+    read_project_memory,
+    update_project_memory,
 )
+
 from agent.prompts import SYSTEM_PROMPT, PLANNING_PROMPT
 from agent.state import TaskState
-from agent.controller import (
-    AgentController,
-    TaskPhase,
-)
+from agent.controller import AgentController, TaskPhase
+
 
 client = OpenAI(
     api_key=LLM7_API_KEY,
     base_url="https://api.llm7.io/v1",
 )
 
+
+# ============================================================
+# TOOL DEFINITIONS
+# ============================================================
 
 TOOLS = [
     {
@@ -41,14 +46,13 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "directory": {
-                        "type": "string",
-                    }
+                    "directory": {"type": "string"}
                 },
                 "required": ["directory"],
             },
         },
     },
+
     {
         "type": "function",
         "function": {
@@ -57,14 +61,13 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "file_path": {
-                        "type": "string",
-                    }
+                    "file_path": {"type": "string"}
                 },
                 "required": ["file_path"],
             },
         },
     },
+
     {
         "type": "function",
         "function": {
@@ -73,43 +76,29 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "directory": {
-                        "type": "string",
-                    },
-                    "query": {
-                        "type": "string",
-                    },
+                    "directory": {"type": "string"},
+                    "query": {"type": "string"},
                 },
-                "required": [
-                    "directory",
-                    "query",
-                ],
+                "required": ["directory", "query"],
             },
         },
     },
+
     {
-    "type": "function",
-    "function": {
-        "name": "search_project",
-        "description": (
-            "Search the project index for relevant "
-            "files, Python functions, and classes."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": (
-                        "Concept, filename, function, "
-                        "or class to search for."
-                    ),
-                }
+        "type": "function",
+        "function": {
+            "name": "search_project",
+            "description": "Search the project index for relevant files, Python functions, and classes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"}
+                },
+                "required": ["query"],
             },
-            "required": ["query"],
         },
     },
-},
+
     {
         "type": "function",
         "function": {
@@ -118,50 +107,14 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "file_path": {
-                        "type": "string",
-                    },
-                    "content": {
-                        "type": "string",
-                    },
+                    "file_path": {"type": "string"},
+                    "content": {"type": "string"},
                 },
-                "required": [
-                    "file_path",
-                    "content",
-                ],
+                "required": ["file_path", "content"],
             },
         },
     },
-    {
-    "type": "function",
-    "function": {
-        "name": "patch_file",
-        "description": (
-            "Safely replace one exact section of a file. "
-            "The replacement is refused if the section is "
-            "missing or appears more than once."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "file_path": {
-                    "type": "string",
-                },
-                "old_text": {
-                    "type": "string",
-                },
-                "new_text": {
-                    "type": "string",
-                },
-            },
-            "required": [
-                "file_path",
-                "old_text",
-                "new_text",
-            ],
-        },
-    },
-},
+
     {
         "type": "function",
         "function": {
@@ -170,15 +123,9 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "file_path": {
-                        "type": "string",
-                    },
-                    "old_text": {
-                        "type": "string",
-                    },
-                    "new_text": {
-                        "type": "string",
-                    },
+                    "file_path": {"type": "string"},
+                    "old_text": {"type": "string"},
+                    "new_text": {"type": "string"},
                 },
                 "required": [
                     "file_path",
@@ -188,6 +135,28 @@ TOOLS = [
             },
         },
     },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "patch_file",
+            "description": "Safely replace one exact section of a file. Replacement is refused if the section is missing or duplicated.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string"},
+                    "old_text": {"type": "string"},
+                    "new_text": {"type": "string"},
+                },
+                "required": [
+                    "file_path",
+                    "old_text",
+                    "new_text",
+                ],
+            },
+        },
+    },
+
     {
         "type": "function",
         "function": {
@@ -196,135 +165,125 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "command": {
-                        "type": "string",
-                    },
-                    "timeout": {
-                        "type": "integer",
-                    },
+                    "command": {"type": "string"},
+                    "timeout": {"type": "integer"},
                 },
                 "required": ["command"],
             },
         },
     },
+
     {
-    "type": "function",
-    "function": {
-        "name": "git_status",
-        "description": "Check the Git status of the workspace.",
-        "parameters": {
-            "type": "object",
-            "properties": {},
+        "type": "function",
+        "function": {
+            "name": "git_status",
+            "description": "Check the Git status of the workspace.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
         },
     },
-},
 
-{
-    "type": "function",
-    "function": {
-        "name": "git_checkpoint",
-        "description": "Create a Git checkpoint of current workspace changes.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string",
+    {
+        "type": "function",
+        "function": {
+            "name": "git_checkpoint",
+            "description": "Create a Git checkpoint of current workspace changes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"}
                 },
+                "required": ["message"],
             },
-            "required": ["message"],
         },
     },
-},
 
-{
-    "type": "function",
-    "function": {
-        "name": "git_rollback",
-        "description": "Discard uncommitted changes in the workspace.",
-        "parameters": {
-            "type": "object",
-            "properties": {},
-        },
-    },
-},
-{
-    "type": "function",
-    "function": {
-        "name": "read_project_memory",
-        "description": (
-            "Read the persistent project memory."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {},
-        },
-    },
-},
-{
-    "type": "function",
-    "function": {
-        "name": "update_project_memory",
-        "description": (
-            "Update or create a section in persistent "
-            "project memory."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "section": {
-                    "type": "string",
-                },
-                "content": {
-                    "type": "string",
-                },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_rollback",
+            "description": "Discard uncommitted changes in the workspace.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
             },
-            "required": [
-                "section",
-                "content",
-            ],
         },
     },
-},
-{
-    "type": "function",
-    "function": {
-        "name": "analyze_python_file",
-        "description": (
-            "Analyze a Python file and return "
-            "its actual function definitions."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "file_path": {
-                    "type": "string",
-                }
+
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_python_file",
+            "description": "Analyze a Python file and return its actual function definitions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string"}
+                },
+                "required": ["file_path"],
             },
-            "required": [
-                "file_path"
-            ],
         },
     },
-},
+
+    {
+        "type": "function",
+        "function": {
+            "name": "read_project_memory",
+            "description": "Read persistent project memory.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "update_project_memory",
+            "description": "Update a section in persistent project memory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "section": {"type": "string"},
+                    "content": {"type": "string"},
+                },
+                "required": ["section", "content"],
+            },
+        },
+    },
 ]
 
+
+# ============================================================
+# TOOL REGISTRY
+# ============================================================
 
 AVAILABLE_TOOLS = {
     "list_files": list_files,
     "read_file": read_file,
     "search_code": search_code,
+    "search_project": search_project,
     "create_file": create_file,
     "edit_file": edit_file,
+    "patch_file": patch_file,
     "run_command": run_command,
     "git_status": git_status,
     "git_checkpoint": git_checkpoint,
     "git_rollback": git_rollback,
     "analyze_python_file": analyze_python_file,
-    "patch_file": patch_file,"search_project": search_project,
+    "read_project_memory": read_project_memory,
+    "update_project_memory": update_project_memory,
 }
 
 
-def load_project_memory() -> str:
+# ============================================================
+# MEMORY
+# ============================================================
+
+def load_project_memory():
 
     memory_file = Path("memory/project.md")
 
@@ -336,6 +295,10 @@ def load_project_memory() -> str:
     )
 
 
+# ============================================================
+# TOOL EXECUTION
+# ============================================================
+
 def execute_tool(name, arguments):
 
     if name not in AVAILABLE_TOOLS:
@@ -346,10 +309,14 @@ def execute_tool(name, arguments):
     return AVAILABLE_TOOLS[name](**arguments)
 
 
+# ============================================================
+# STATE TRACKING
+# ============================================================
+
 def update_state(
-    state: TaskState,
-    tool_name: str,
-    arguments: dict,
+    state,
+    tool_name,
+    arguments,
     result,
 ):
 
@@ -359,13 +326,11 @@ def update_state(
             arguments["file_path"]
         )
 
-    elif tool_name == "edit_file":
-
-        state.record_modified_file(
-            arguments["file_path"]
-        )
-
-    elif tool_name == "create_file":
+    elif tool_name in {
+        "edit_file",
+        "patch_file",
+        "create_file",
+    }:
 
         state.record_modified_file(
             arguments["file_path"]
@@ -379,7 +344,10 @@ def update_state(
 
         if isinstance(result, dict):
 
-            if not result.get("success", False):
+            if not result.get(
+                "success",
+                False,
+            ):
 
                 error = (
                     result.get("stderr")
@@ -390,19 +358,25 @@ def update_state(
                 state.record_error(error)
 
 
+# ============================================================
+# PLANNING
+# ============================================================
+
 def create_plan(
-    objective: str,
-    project_memory: str,
-) -> str:
+    objective,
+    project_memory,
+):
 
     response = client.chat.completions.create(
         model="default",
         messages=[
             {
                 "role": "system",
-                "content": PLANNING_PROMPT
-                + "\n\nPROJECT MEMORY:\n"
-                + project_memory,
+                "content": (
+                    PLANNING_PROMPT
+                    + "\n\nPROJECT MEMORY:\n"
+                    + project_memory
+                ),
             },
             {
                 "role": "user",
@@ -414,23 +388,38 @@ def create_plan(
     return response.choices[0].message.content
 
 
-def run_agent(objective: str) -> str:
+# ============================================================
+# AGENT
+# ============================================================
+
+def run_agent(objective):
 
     project_memory = load_project_memory()
 
     state = TaskState(
         objective=objective
     )
+
     controller = AgentController(
         state
     )
 
+    # --------------------------------------------------------
+    # CHECKPOINT
+    # --------------------------------------------------------
+
     controller.set_phase(
-    TaskPhase.CHECKPOINT
-)
+        TaskPhase.CHECKPOINT
+    )
+
     controller.set_phase(
-    TaskPhase.PLANNING
-)
+        TaskPhase.PLANNING
+    )
+
+    # --------------------------------------------------------
+    # PLAN
+    # --------------------------------------------------------
+
     state.plan = create_plan(
         objective,
         project_memory,
@@ -438,12 +427,22 @@ def run_agent(objective: str) -> str:
 
     print("\n[Agent Plan]")
     print(state.plan)
-    if not controller.prepare_workspace():
-        print(
-        "[Agent] Git checkpoint unavailable."
-    )
-        controller.begin_inspection()
 
+    # --------------------------------------------------------
+    # WORKSPACE CHECKPOINT
+    # --------------------------------------------------------
+
+    if not controller.prepare_workspace():
+
+        print(
+            "[Agent] Git checkpoint unavailable."
+        )
+
+    controller.begin_inspection()
+
+    # --------------------------------------------------------
+    # INITIAL MODEL CONTEXT
+    # --------------------------------------------------------
 
     messages = [
         {
@@ -452,6 +451,7 @@ def run_agent(objective: str) -> str:
                 project_memory=project_memory
             ),
         },
+
         {
             "role": "user",
             "content": f"""
@@ -467,12 +467,23 @@ TASK STATE:
 
 You have a maximum of {state.max_attempts} repair attempts.
 
-Begin by inspecting the project.
-Then implement the objective.
-Verify your work before finishing.
+Rules:
+
+1. Inspect before modifying.
+2. Never invent file contents.
+3. Never repeat a failed edit blindly.
+4. After modifying code, verify it.
+5. If verification succeeds, STOP.
+6. Do not continue making unnecessary changes after success.
+7. If a tool fails, inspect the actual failure before retrying.
+8. Only modify files necessary for the objective.
 """,
         },
     ]
+
+    # ========================================================
+    # MAIN LOOP
+    # ========================================================
 
     while not state.completed:
 
@@ -483,6 +494,10 @@ Verify your work before finishing.
                 f"maximum of {state.max_attempts} attempts.\n\n"
                 f"Errors encountered:\n{state.errors}"
             )
+
+        # ----------------------------------------------------
+        # MODEL
+        # ----------------------------------------------------
 
         response = client.chat.completions.create(
             model="default",
@@ -497,14 +512,23 @@ Verify your work before finishing.
             assistant_message
         )
 
+        # ----------------------------------------------------
+        # MODEL FINISHED WITHOUT TOOL
+        # ----------------------------------------------------
+
         if not assistant_message.tool_calls:
 
             state.completed = True
+            state.success = True
+
+            content = (
+                assistant_message.content
+                or "Task completed."
+            )
 
             return (
-                assistant_message.content
-                + "\n\n"
-                + "Task state:"
+                content
+                + "\n\nTask state:"
                 + f"\nInspected files: "
                 f"{len(state.inspected_files)}"
                 + f"\nModified files: "
@@ -514,6 +538,12 @@ Verify your work before finishing.
                 + f"\nErrors: "
                 f"{len(state.errors)}"
             )
+
+        # ----------------------------------------------------
+        # TOOL CALLS
+        # ----------------------------------------------------
+
+        successful_verification = False
 
         for tool_call in assistant_message.tool_calls:
 
@@ -551,62 +581,86 @@ Verify your work before finishing.
                     default=str,
                 )
 
+                # ------------------------------------------------
+                # COMMAND RESULT
+                # ------------------------------------------------
+
                 if name == "run_command":
 
-                    if isinstance(result, dict):
-
-                        if not result.get(
+                    success = (
+                        isinstance(result, dict)
+                        and result.get(
                             "success",
                             False,
-                        ):
-                            print(
-                "\n[Agent detected a command failure]"
-            )
-                            state.record_error(
-                result.get(
-                    "stderr",
-                    result.get(
-                        "error",
-                        "Command failed",
-                    ),
-                )
-            )
-                            controller.begin_diagnosis()
-                            diagnosis = (
-                result.get("stderr")
-                or result.get("error")
-                or result.get("stdout")
-                or "Unknown failure"
-            )
-                            print(
-                "\n[Failure Diagnosis]"
-            )
-                            print(diagnosis)
-                            if controller.can_repair():
-                                controller.begin_repair()
+                        )
+                    )
+
+                    if success:
+
+                        print(
+                            "\n[Verification successful]"
+                        )
+
+                        state.record_verification(
+                            arguments["command"],
+                            True,
+                        )
+
+                        successful_verification = True
+
+                    else:
+
+                        error = (
+                            result.get("stderr")
+                            or result.get("error")
+                            or "Command failed."
+                        )
+
+                        print(
+                            "\n[Agent detected a command failure]"
+                        )
+
+                        print(error)
+
+                        state.record_error(
+                            error
+                        )
+
+                        state.attempts += 1
+
+                        controller.begin_diagnosis()
+
+                        diagnosis = (
+                            result.get("stderr")
+                            or result.get("error")
+                            or result.get("stdout")
+                            or "Unknown failure"
+                        )
+
+                        print(
+                            "\n[Failure Diagnosis]"
+                        )
+
+                        print(diagnosis)
+
+                        if controller.can_repair():
+
+                            controller.begin_repair()
 
                         else:
 
-                            print(
-                    "\n[Agent] Maximum repair "
-                    "attempts reached."
-                )
                             controller.rollback()
                             controller.fail()
+
+                            state.completed = True
+
                             break
+
                 else:
+
                     print(
-                "\n[Verification successful]"
-            )
-
-                    state.record_verification(
-                result.get(
-                    "command",
-                    "command",
-                ),
-                True,
-            )
-
+                        "\n[Tool successful]"
+                    )
 
             except Exception as error:
 
@@ -616,6 +670,12 @@ Verify your work before finishing.
 
                 state.record_error(
                     error_text
+                )
+
+                state.record_failed_action(
+                    name,
+                    arguments,
+                    error_text,
                 )
 
                 result_text = json.dumps({
@@ -629,27 +689,70 @@ Verify your work before finishing.
                 "content": result_text,
             })
 
+            # ----------------------------------------------------
+            # HARD STOP AFTER SUCCESSFUL VERIFICATION
+            # ----------------------------------------------------
+
+            if successful_verification:
+
+                state.completed = True
+                state.success = True
+
+                print(
+                    "\n[PHASE → COMPLETE]"
+                )
+
+                break
+
+        # ----------------------------------------------------
+        # STOP — DO NOT ASK THE MODEL TO CONTINUE
+        # ----------------------------------------------------
+
+        if state.completed:
+
+            break
+
+        # ----------------------------------------------------
+        # FAILURE / CONTINUE
+        # ----------------------------------------------------
+
         messages.append({
             "role": "user",
             "content": """
-Continue working on the objective.
-Use the available tools directly.
-Do not merely describe commands or tool calls.
-Actually call the appropriate tool.
+Continue the objective.
 
-If something failed:
-1. Examine the actual error.
-2. Determine the cause.
-3. Inspect relevant files if necessary.
-4. Make a targeted correction.
-5. Run verification again.
+If a tool failed:
 
-Do not recreate an existing file unless necessary.
+1. Read the exact error.
+2. Inspect the relevant file.
+3. Determine the actual cause.
+4. Make one targeted correction.
+5. Verify the correction.
 
-Stop when the objective has been successfully verified.
+Never repeat an edit whose old_text was not found.
+
+If verification succeeds, stop immediately.
 """,
         })
 
+    # ========================================================
+    # FINAL RESULT
+    # ========================================================
 
-def ask_model(message: str) -> str:
+    return (
+        "Task completed."
+        + "\n\nTask state:"
+        + f"\nInspected files: "
+        f"{len(state.inspected_files)}"
+        + f"\nModified files: "
+        f"{len(state.modified_files)}"
+        + f"\nCommands: "
+        f"{len(state.commands)}"
+        + f"\nErrors: "
+        f"{len(state.errors)}"
+    )
+
+
+def ask_model(message):
+
     return run_agent(message)
