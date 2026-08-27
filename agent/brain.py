@@ -701,7 +701,48 @@ def record_failure(
     controller.fail()
 
     return False
+def objective_requires_modification(objective):
+    objective_lower = objective.lower()
 
+    modification_words = [
+        "fix",
+        "modify",
+        "edit",
+        "change",
+        "update",
+        "repair",
+        "implement",
+        "create",
+        "refactor",
+        "remove",
+        "add",
+        "write",
+    ]
+
+    read_only_phrases = [
+        "read",
+        "tell me",
+        "show me",
+        "list",
+        "analyze",
+        "inspect",
+        "explain",
+        "what functions",
+        "what classes",
+        "do not modify",
+        "don't modify",
+    ]
+
+    if any(
+        phrase in objective_lower
+        for phrase in read_only_phrases
+    ):
+        return False
+
+    return any(
+        word in objective_lower
+        for word in modification_words
+    )
 
 # ============================================================
 # AGENT
@@ -730,6 +771,9 @@ def run_agent(
     state = TaskState(
         objective=objective
     )
+    state.requires_modification = objective_requires_modification(
+    objective
+)
 
     controller = AgentController(
         state
@@ -744,14 +788,7 @@ def run_agent(
     # --------------------------------------------------------
     # INITIAL PHASE
     # --------------------------------------------------------
-
-    controller.set_phase(
-        TaskPhase.CHECKPOINT
-    )
-
-    controller.set_phase(
-        TaskPhase.PLANNING
-    )
+    controller.set_phase(TaskPhase.PLANNING)
 
     # --------------------------------------------------------
     # PLAN

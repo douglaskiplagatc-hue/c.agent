@@ -23,6 +23,7 @@ class TaskState:
 
         self.memory_loaded = False
         self.checkpoint_created = False
+        self.requires_modification = False
 
     # -------------------------
     # FILE TRACKING
