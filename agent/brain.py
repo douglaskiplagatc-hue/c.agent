@@ -44,7 +44,6 @@ client = OpenAI(
 # ============================================================
 
 TOOLS = [
-
     {
         "type": "function",
         "function": {
@@ -212,8 +211,8 @@ TOOLS = [
             "name": "run_command",
             "description": (
                 "Run a terminal command inside the workspace. "
-                "Use this for verification, tests, linting, "
-                "or inspecting command output."
+                "Use this for verification, tests, Python scripts, "
+                "linting, or inspecting command output."
             ),
             "parameters": {
                 "type": "object",
@@ -246,9 +245,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "git_checkpoint",
-            "description": (
-                "Create a Git checkpoint of current workspace changes."
-            ),
+            "description": "Create a Git checkpoint of current workspace changes.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -265,9 +262,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "git_rollback",
-            "description": (
-                "Discard uncommitted changes in the workspace."
-            ),
+            "description": "Discard uncommitted changes in the workspace.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -299,9 +294,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "read_project_memory",
-            "description": (
-                "Read the persistent project memory."
-            ),
+            "description": "Read persistent project memory.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -342,35 +335,56 @@ TOOLS = [
 # ============================================================
 
 AVAILABLE_TOOLS = {
-
     "list_files": list_files,
-
     "read_file": read_file,
-
     "search_code": search_code,
-
     "search_project": search_project,
-
     "create_file": create_file,
-
     "edit_file": edit_file,
-
     "patch_file": patch_file,
-
     "run_command": run_command,
-
     "git_status": git_status,
-
     "git_checkpoint": git_checkpoint,
-
     "git_rollback": git_rollback,
-
     "analyze_python_file": analyze_python_file,
-
     "read_project_memory": read_project_memory,
-
     "update_project_memory": update_project_memory,
 }
+
+
+WRITE_TOOLS = {
+    "create_file",
+    "edit_file",
+    "patch_file",
+}
+
+
+INSPECTION_TOOLS = {
+    "list_files",
+    "read_file",
+    "search_code",
+    "search_project",
+    "analyze_python_file",
+    "read_project_memory",
+    "git_status",
+}
+
+
+VERIFICATION_INDICATORS = (
+    "pytest",
+    "unittest",
+    "python ",
+    "python3 ",
+    "py ",
+    "ruff",
+    "mypy",
+    "flake8",
+    "pyright",
+    "npm test",
+    "npm run test",
+    "npm run build",
+    "npm run lint",
+)
 
 
 # ============================================================
@@ -385,7 +399,6 @@ def load_project_memory():
         return ""
 
     try:
-
         return memory_file.read_text(
             encoding="utf-8"
         )
@@ -436,16 +449,54 @@ def is_forbidden_file(
     if not file_path:
         return False
 
-    normalized = file_path.replace("\\", "/")
+    normalized = file_path.replace(
+        "\\",
+        "/",
+    )
 
     for pattern in forbidden_patterns:
 
-        pattern = pattern.replace("\\", "/")
+        normalized_pattern = pattern.replace(
+            "\\",
+            "/",
+        )
 
-        if fnmatch(normalized, pattern):
+        if fnmatch(
+            normalized,
+            normalized_pattern,
+        ):
             return True
 
     return False
+
+
+# ============================================================
+# OBJECTIVE TYPE
+# ============================================================
+
+def objective_requires_modification(objective):
+
+    objective_lower = objective.lower()
+
+    modification_words = (
+        "fix",
+        "modify",
+        "edit",
+        "change",
+        "update",
+        "repair",
+        "implement",
+        "create",
+        "refactor",
+        "remove",
+        "add",
+        "write",
+    )
+
+    return any(
+        word in objective_lower
+        for word in modification_words
+    )
 
 
 # ============================================================
@@ -485,11 +536,7 @@ def update_state(
             arguments["file_path"]
         )
 
-    elif tool_name in {
-        "edit_file",
-        "patch_file",
-        "create_file",
-    }:
+    elif tool_name in WRITE_TOOLS:
 
         state.record_modified_file(
             arguments["file_path"]
@@ -498,23 +545,11 @@ def update_state(
     elif tool_name == "run_command":
 
         state.record_command(
-            arguments["command"]
+            arguments.get(
+                "command",
+                "",
+            )
         )
-
-        if isinstance(result, dict):
-
-            if not result.get(
-                "success",
-                False,
-            ):
-
-                error = (
-                    result.get("stderr")
-                    or result.get("error")
-                    or "Command failed."
-                )
-
-                state.record_error(error)
 
 
 # ============================================================
@@ -549,6 +584,7 @@ def create_plan(
     return (
         response.choices[0]
         .message.content
+        or ""
     )
 
 
@@ -557,7 +593,7 @@ def create_plan(
 # ============================================================
 
 def verify_python_file(
-    file_path
+    file_path,
 ):
 
     try:
@@ -573,7 +609,7 @@ def verify_python_file(
 
             return (
                 False,
-                "Unable to read file after modification."
+                "Unable to read file after modification.",
             )
 
         compile(
@@ -584,21 +620,21 @@ def verify_python_file(
 
         return (
             True,
-            f"Python syntax verification passed for {file_path}."
+            f"Python syntax verification passed for {file_path}.",
         )
 
     except SyntaxError as error:
 
         return (
             False,
-            f"Syntax error in {file_path}: {error}"
+            f"Syntax error in {file_path}: {error}",
         )
 
     except Exception as error:
 
         return (
             False,
-            f"Verification failed: {error}"
+            f"Verification failed: {error}",
         )
 
 
@@ -630,20 +666,56 @@ def make_tool_call_key(
 
 
 # ============================================================
+# RECORD FAILURE
+# ============================================================
+
+def record_failure(
+    state,
+    controller,
+    name,
+    arguments,
+    error,
+):
+
+    error_text = str(error)
+
+    state.record_error(
+        error_text
+    )
+
+    state.record_failed_action(
+        name,
+        arguments,
+        error_text,
+    )
+
+    controller.begin_diagnosis()
+
+    if controller.can_repair():
+
+        controller.begin_repair()
+
+        return True
+
+    controller.rollback()
+    controller.fail()
+
+    return False
+
+
+# ============================================================
 # AGENT
 # ============================================================
 
 def run_agent(
-    objective
+    objective,
 ):
 
     # --------------------------------------------------------
-    # LOAD MEMORY
+    # MEMORY
     # --------------------------------------------------------
 
-    project_memory = (
-        load_project_memory()
-    )
+    project_memory = load_project_memory()
 
     forbidden_patterns = (
         parse_forbidden_files(
@@ -663,8 +735,14 @@ def run_agent(
         state
     )
 
+    requires_modification = (
+        objective_requires_modification(
+            objective
+        )
+    )
+
     # --------------------------------------------------------
-    # CHECKPOINT
+    # INITIAL PHASE
     # --------------------------------------------------------
 
     controller.set_phase(
@@ -676,13 +754,28 @@ def run_agent(
     )
 
     # --------------------------------------------------------
-    # CREATE PLAN
+    # PLAN
     # --------------------------------------------------------
 
-    state.plan = create_plan(
-        objective,
-        project_memory,
-    )
+    try:
+
+        state.plan = create_plan(
+            objective,
+            project_memory,
+        )
+
+    except Exception as error:
+
+        state.record_error(
+            str(error)
+        )
+
+        controller.fail()
+
+        return (
+            "Planning failed.\n\n"
+            f"Error: {error}"
+        )
 
     print(
         "\n[Agent Plan]"
@@ -693,7 +786,7 @@ def run_agent(
     )
 
     # --------------------------------------------------------
-    # PREPARE WORKSPACE
+    # CHECKPOINT
     # --------------------------------------------------------
 
     if not controller.prepare_workspace():
@@ -732,60 +825,83 @@ IMPLEMENTATION PLAN:
 
 {state.plan}
 
-TASK STATE:
+TASK REQUIREMENTS:
 
-Maximum repair attempts:
+This is an actual coding-agent task.
+
+You must distinguish between:
+
+- inspection
+- implementation
+- verification
+- diagnosis
+- repair
+- completion
+
+The objective requires modification:
+{requires_modification}
+
+MAXIMUM REPAIR ATTEMPTS:
+
 {state.max_attempts}
 
-IMPORTANT OPERATING RULES:
+MANDATORY RULES:
 
-1. Inspect files before modifying them.
+1. Inspect the relevant file before modifying it.
 
 2. Never invent file contents.
 
-3. When editing a file, first read the actual current
-   contents of that file.
+3. For an edit or patch, use the actual contents
+   returned by read_file.
 
-4. Never blindly repeat an edit that failed because
-   old_text was not found.
+4. Never repeat an identical failed edit.
 
-5. A successful tool call does NOT mean the user's
-   objective is complete.
+5. Never repeat an identical failed tool call.
 
-6. list_files, search_code, search_project, read_file,
-   and similar inspection tools are NOT verification
-   of the user's objective.
+6. A successful inspection is NOT task completion.
 
-7. After making a modification, verify the modification.
+7. A successful list_files call is NOT task completion.
 
-8. For Python files, compile the file or run the requested
-   Python test/script.
+8. A successful read_file call is NOT task completion.
 
-9. If a command fails, inspect the actual error before
-   attempting a repair.
+9. A successful search is NOT task completion.
 
-10. Never repeat the exact same failed tool call.
+10. A successful modification is NOT automatically
+    task completion.
 
-11. Only modify files necessary for the objective.
+11. If the objective requires modification, you MUST
+    actually modify the required file.
 
-12. Do not modify forbidden files from project memory.
+12. If the objective requires modification, you MUST
+    verify the modification.
 
-13. If the user's objective is analysis-only, do NOT modify
-    anything.
+13. For Python objectives, run the requested Python
+    script when the user asks for it.
 
-14. Once the user's objective has genuinely been verified,
-    STOP immediately.
+14. If a verification command fails, inspect the actual
+    error before repairing.
 
-15. Do not continue making unnecessary changes after
-    successful verification.
+15. Only modify files necessary for the objective.
 
-Begin by inspecting the project.
+16. Never modify forbidden files.
+
+17. Analysis-only requests must never modify files.
+
+18. Once the objective has genuinely been verified,
+    stop immediately.
+
+19. Do not claim success simply because tools executed
+    successfully.
+
+20. If you have only inspected files, you are NOT done.
+
+BEGIN BY INSPECTING THE RELEVANT FILE.
 """,
         },
     ]
 
     # --------------------------------------------------------
-    # CALL HISTORY
+    # HISTORY
     # --------------------------------------------------------
 
     recent_tool_calls = []
@@ -815,20 +931,16 @@ Begin by inspecting the project.
             )
 
         # ----------------------------------------------------
-        # ASK MODEL
+        # MODEL
         # ----------------------------------------------------
 
         try:
 
             response = (
                 client.chat.completions.create(
-
                     model="default",
-
                     messages=messages,
-
                     tools=TOOLS,
-
                     tool_choice="auto",
                 )
             )
@@ -855,24 +967,122 @@ Begin by inspecting the project.
         )
 
         # ----------------------------------------------------
-        # MODEL FINISHED
+        # MODEL FINISHED WITHOUT TOOL CALL
         # ----------------------------------------------------
 
         if not assistant_message.tool_calls:
 
             content = (
                 assistant_message.content
-                or "Task completed."
+                or ""
             )
 
-            # The model is allowed to finish only when it has
-            # decided the objective is complete.
+            # ------------------------------------------------
+            # ANALYSIS-ONLY TASK
+            # ------------------------------------------------
+
+            if not requires_modification:
+
+                controller.complete()
+
+                return (
+                    content
+                    + "\n\nTask state:"
+                    + f"\nInspected files: "
+                    f"{len(state.inspected_files)}"
+                    + f"\nModified files: "
+                    f"{len(state.modified_files)}"
+                    + f"\nCommands: "
+                    f"{len(state.commands)}"
+                    + f"\nErrors: "
+                    f"{len(state.errors)}"
+                )
+
+            # ------------------------------------------------
+            # MODIFICATION TASK WITHOUT MODIFICATION
+            # ------------------------------------------------
+
+            if not state.modified_files:
+
+                print(
+                    "\n[Agent] Premature completion blocked."
+                )
+
+                messages.append({
+                    "role": "user",
+                    "content": """
+You have NOT completed the user's objective.
+
+The task requires a modification, but no file has
+been modified.
+
+Do NOT claim completion.
+
+Continue working:
+
+1. Inspect the required file.
+2. Read its actual contents.
+3. Identify the actual problem.
+4. Make the smallest necessary modification.
+5. Verify the modification.
+6. Only finish after successful verification.
+
+If the task explicitly requires running a Python file,
+you MUST run that Python file.
+""",
+                })
+
+                continue
+
+            # ------------------------------------------------
+            # MODIFICATION WITHOUT VERIFICATION
+            # ------------------------------------------------
+
+            successful_verifications = [
+                verification
+                for verification in state.verifications
+                if verification.get("success") is True
+            ]
+
+            if not successful_verifications:
+
+                print(
+                    "\n[Agent] Completion blocked: "
+                    "modification has not been verified."
+                )
+
+                messages.append({
+                    "role": "user",
+                    "content": """
+You have modified a file, but the modification has
+NOT been successfully verified.
+
+You are NOT finished.
+
+Verify the actual objective now.
+
+For a Python repair task:
+
+1. Run the requested Python file.
+2. Inspect the complete output.
+3. If it fails, diagnose the actual error.
+4. Repair the problem.
+5. Run the Python file again.
+6. Only finish after it succeeds.
+""",
+                })
+
+                continue
+
+            # ------------------------------------------------
+            # REAL COMPLETION
+            # ------------------------------------------------
+
             controller.complete()
 
             return (
                 content
-                + "\n\n"
-                + "Task state:"
+                + "\n\nTask state:"
                 + f"\nInspected files: "
                 f"{len(state.inspected_files)}"
                 + f"\nModified files: "
@@ -884,7 +1094,7 @@ Begin by inspecting the project.
             )
 
         # ----------------------------------------------------
-        # PROCESS TOOL CALLS
+        # TOOL CALLS
         # ----------------------------------------------------
 
         for tool_call in assistant_message.tool_calls:
@@ -892,6 +1102,10 @@ Begin by inspecting the project.
             name = (
                 tool_call.function.name
             )
+
+            # ------------------------------------------------
+            # PARSE ARGUMENTS
+            # ------------------------------------------------
 
             try:
 
@@ -926,7 +1140,7 @@ Begin by inspecting the project.
             )
 
             # ------------------------------------------------
-            # DUPLICATE TOOL CALL
+            # DUPLICATE CALL
             # ------------------------------------------------
 
             call_key = make_tool_call_key(
@@ -938,25 +1152,25 @@ Begin by inspecting the project.
 
                 error = (
                     "This exact tool call was already "
-                    "executed recently. Do not repeat it. "
-                    "Inspect the result and take a different "
-                    "action if necessary."
+                    "executed. Do not repeat it. "
+                    "Use the existing result and take "
+                    "a different action."
                 )
 
                 print(
                     "\n[Agent] Duplicate tool call blocked."
                 )
 
-                result_text = json.dumps({
-                    "success": False,
-                    "error": error,
-                })
-
                 state.record_failed_action(
                     name,
                     arguments,
                     error,
                 )
+
+                result_text = json.dumps({
+                    "success": False,
+                    "error": error,
+                })
 
                 messages.append({
                     "role": "tool",
@@ -970,26 +1184,18 @@ Begin by inspecting the project.
                 call_key
             )
 
-            if len(recent_tool_calls) > 15:
+            if len(recent_tool_calls) > 20:
 
                 recent_tool_calls.pop(0)
 
             # ------------------------------------------------
-            # FORBIDDEN FILE PROTECTION
+            # FORBIDDEN FILE
             # ------------------------------------------------
 
-            write_tools = {
-                "create_file",
-                "edit_file",
-                "patch_file",
-            }
+            if name in WRITE_TOOLS:
 
-            if name in write_tools:
-
-                file_path = (
-                    arguments.get(
-                        "file_path"
-                    )
+                file_path = arguments.get(
+                    "file_path"
                 )
 
                 if is_forbidden_file(
@@ -1006,16 +1212,16 @@ Begin by inspecting the project.
                         "\n[Agent] Forbidden file blocked."
                     )
 
-                    result_text = json.dumps({
-                        "success": False,
-                        "error": error,
-                    })
-
                     state.record_failed_action(
                         name,
                         arguments,
                         error,
                     )
+
+                    result_text = json.dumps({
+                        "success": False,
+                        "error": error,
+                    })
 
                     messages.append({
                         "role": "tool",
@@ -1026,7 +1232,7 @@ Begin by inspecting the project.
                     continue
 
             # ------------------------------------------------
-            # FAILED EDIT PROTECTION
+            # FAILED PATCH
             # ------------------------------------------------
 
             if name in {
@@ -1034,45 +1240,34 @@ Begin by inspecting the project.
                 "patch_file",
             }:
 
-                file_path = (
-                    arguments.get(
-                        "file_path"
-                    )
-                )
-
-                old_text = (
-                    arguments.get(
-                        "old_text"
-                    )
-                )
-
                 patch_key = (
-                    file_path,
-                    old_text,
+                    arguments.get("file_path"),
+                    arguments.get("old_text"),
                 )
 
                 if patch_key in failed_actions:
 
                     error = (
                         "This exact edit already failed. "
-                        "Do NOT repeat it. Read the file again "
-                        "and use the actual current contents."
+                        "Do not repeat it. Read the file "
+                        "again and determine the actual "
+                        "current contents."
                     )
 
                     print(
                         "\n[Agent] Repeated failed edit blocked."
                     )
 
-                    result_text = json.dumps({
-                        "success": False,
-                        "error": error,
-                    })
-
                     state.record_failed_action(
                         name,
                         arguments,
                         error,
                     )
+
+                    result_text = json.dumps({
+                        "success": False,
+                        "error": error,
+                    })
 
                     messages.append({
                         "role": "tool",
@@ -1100,287 +1295,11 @@ Begin by inspecting the project.
                     result,
                 )
 
-                # --------------------------------------------
-                # TOOL RESULT
-                # --------------------------------------------
-
                 result_text = json.dumps(
                     result,
                     indent=2,
                     default=str,
                 )
-
-                # --------------------------------------------
-                # COMMAND
-                # --------------------------------------------
-
-                if name == "run_command":
-
-                    success = (
-                        isinstance(
-                            result,
-                            dict,
-                        )
-                        and result.get(
-                            "success",
-                            False,
-                        )
-                    )
-
-                    if success:
-
-                        print(
-                            "\n[Verification successful]"
-                        )
-
-                        state.record_verification(
-                            arguments.get(
-                                "command",
-                                "command",
-                            ),
-                            True,
-                        )
-
-                    else:
-
-                        error = (
-                            result.get("stderr")
-                            or result.get("error")
-                            or "Command failed."
-                        )
-
-                        print(
-                            "\n[Agent detected a command failure]"
-                        )
-
-                        print(
-                            f"Error: {error}"
-                        )
-
-                        state.record_error(
-                            error
-                        )
-
-                        state.record_failed_action(
-                            name,
-                            arguments,
-                            error,
-                        )
-
-                        controller.begin_diagnosis()
-
-                        diagnosis = (
-                            result.get("stderr")
-                            or result.get("error")
-                            or result.get("stdout")
-                            or "Unknown failure"
-                        )
-
-                        print(
-                            "\n[Failure Diagnosis]"
-                        )
-
-                        print(
-                            diagnosis
-                        )
-
-                        if controller.can_repair():
-
-                            controller.begin_repair()
-
-                        else:
-
-                            print(
-                                "\n[Agent] Maximum repair "
-                                "attempts reached."
-                            )
-
-                            controller.rollback()
-                            controller.fail()
-
-                            state.completed = True
-
-                            break
-
-                # --------------------------------------------
-                # WRITE TOOLS
-                # --------------------------------------------
-
-                elif name in write_tools:
-
-                    success = (
-                        isinstance(
-                            result,
-                            dict,
-                        )
-                        and result.get(
-                            "success",
-                            False,
-                        )
-                    )
-
-                    if not success:
-
-                        error = (
-                            result.get("error")
-                            if isinstance(
-                                result,
-                                dict,
-                            )
-                            else "File modification failed."
-                        )
-
-                        print(
-                            "\n[File modification failed]"
-                        )
-
-                        print(
-                            f"Error: {error}"
-                        )
-
-                        state.record_error(
-                            error
-                        )
-
-                        state.record_failed_action(
-                            name,
-                            arguments,
-                            error,
-                        )
-
-                        # ------------------------------------
-                        # Remember failed patch
-                        # ------------------------------------
-
-                        if name in {
-                            "edit_file",
-                            "patch_file",
-                        }:
-
-                            failed_actions.add(
-                                (
-                                    arguments.get(
-                                        "file_path"
-                                    ),
-                                    arguments.get(
-                                        "old_text"
-                                    ),
-                                )
-                            )
-
-                        controller.begin_diagnosis()
-
-                        if controller.can_repair():
-
-                            controller.begin_repair()
-
-                        else:
-
-                            controller.rollback()
-                            controller.fail()
-
-                            state.completed = True
-
-                            break
-
-                    else:
-
-                        print(
-                            "\n[File modification successful]"
-                        )
-
-                        # ------------------------------------
-                        # Automatic Python syntax verification
-                        # ------------------------------------
-
-                        file_path = (
-                            arguments.get(
-                                "file_path"
-                            )
-                        )
-
-                        if (
-                            file_path
-                            and file_path.endswith(".py")
-                        ):
-
-                            ok, message = (
-                                verify_python_file(
-                                    file_path
-                                )
-                            )
-
-                            if ok:
-
-                                print(
-                                    f"\n[Verification] "
-                                    f"{message}"
-                                )
-
-                                state.record_verification(
-                                    message,
-                                    True,
-                                )
-
-                            else:
-
-                                print(
-                                    f"\n[Verification failed] "
-                                    f"{message}"
-                                )
-
-                                state.record_error(
-                                    message
-                                )
-
-                                state.record_failed_action(
-                                    name,
-                                    arguments,
-                                    message,
-                                )
-
-                                if name in {
-                                    "edit_file",
-                                    "patch_file",
-                                }:
-
-                                    failed_actions.add(
-                                        (
-                                            file_path,
-                                            arguments.get(
-                                                "old_text"
-                                            ),
-                                        )
-                                    )
-
-                                controller.begin_diagnosis()
-
-                                if controller.can_repair():
-
-                                    controller.begin_repair()
-
-                                else:
-
-                                    controller.rollback()
-                                    controller.fail()
-
-                                    state.completed = True
-
-                                    break
-
-                # --------------------------------------------
-                # OTHER TOOLS
-                # --------------------------------------------
-
-                else:
-
-                    print(
-                        "\n[Tool successful]"
-                    )
-
-            # ------------------------------------------------
-            # TOOL EXCEPTION
-            # ------------------------------------------------
 
             except Exception as error:
 
@@ -1404,10 +1323,6 @@ Begin by inspecting the project.
                     error_text,
                 )
 
-                # --------------------------------------------
-                # Remember failed edit
-                # --------------------------------------------
-
                 if name in {
                     "edit_file",
                     "patch_file",
@@ -1429,29 +1344,325 @@ Begin by inspecting the project.
                     "error": error_text,
                     "instruction": (
                         "THIS ACTION FAILED. "
-                        "Do not repeat the exact same action. "
-                        "Inspect the actual current state and "
-                        "choose a different approach."
+                        "Do not repeat the exact same "
+                        "tool call. Inspect the actual "
+                        "current state and choose a "
+                        "different approach."
                     ),
                 })
 
-                controller.begin_diagnosis()
+                record_failure(
+                    state,
+                    controller,
+                    name,
+                    arguments,
+                    error_text,
+                )
 
-                if controller.can_repair():
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": result_text,
+                })
 
-                    controller.begin_repair()
+                if state.completed:
+                    break
+
+                continue
+
+            # ------------------------------------------------
+            # RESULT SUCCESS FLAG
+            # ------------------------------------------------
+
+            success = (
+                isinstance(
+                    result,
+                    dict,
+                )
+                and result.get(
+                    "success",
+                    False,
+                )
+            )
+
+            # ------------------------------------------------
+            # COMMAND
+            # ------------------------------------------------
+
+            if name == "run_command":
+
+                command = arguments.get(
+                    "command",
+                    "",
+                )
+
+                if success:
+
+                    print(
+                        "\n[Command successful]"
+                    )
+
+                    print(
+                        f"[Command] {command}"
+                    )
+
+                    command_lower = (
+                        command.lower()
+                    )
+
+                    is_verification = any(
+                        indicator
+                        in command_lower
+                        for indicator
+                        in VERIFICATION_INDICATORS
+                    )
+
+                    if is_verification:
+
+                        controller.begin_verification()
+
+                        print(
+                            "\n[Verification successful]"
+                        )
+
+                        state.record_verification(
+                            command,
+                            True,
+                        )
 
                 else:
 
-                    controller.rollback()
-                    controller.fail()
+                    error = (
+                        result.get("stderr")
+                        or result.get("error")
+                        or "Command failed."
+                    )
 
-                    state.completed = True
+                    print(
+                        "\n[Agent detected a command failure]"
+                    )
 
-                    break
+                    print(
+                        f"Error: {error}"
+                    )
+
+                    state.record_error(
+                        error
+                    )
+
+                    state.record_failed_action(
+                        name,
+                        arguments,
+                        error,
+                    )
+
+                    controller.begin_diagnosis()
+
+                    print(
+                        "\n[Failure Diagnosis]"
+                    )
+
+                    print(
+                        result.get("stderr")
+                        or result.get("error")
+                        or result.get("stdout")
+                        or "Unknown failure"
+                    )
+
+                    if controller.can_repair():
+
+                        controller.begin_repair()
+
+                    else:
+
+                        controller.rollback()
+                        controller.fail()
+
+                        state.completed = True
 
             # ------------------------------------------------
-            # SEND TOOL RESULT BACK TO MODEL
+            # WRITE TOOLS
+            # ------------------------------------------------
+
+            elif name in WRITE_TOOLS:
+
+                if not success:
+
+                    error = (
+                        result.get("error")
+                        if isinstance(
+                            result,
+                            dict,
+                        )
+                        else "File modification failed."
+                    )
+
+                    print(
+                        "\n[File modification failed]"
+                    )
+
+                    print(
+                        f"Error: {error}"
+                    )
+
+                    state.record_error(
+                        error
+                    )
+
+                    state.record_failed_action(
+                        name,
+                        arguments,
+                        error,
+                    )
+
+                    if name in {
+                        "edit_file",
+                        "patch_file",
+                    }:
+
+                        failed_actions.add(
+                            (
+                                arguments.get(
+                                    "file_path"
+                                ),
+                                arguments.get(
+                                    "old_text"
+                                ),
+                            )
+                        )
+
+                    controller.begin_diagnosis()
+
+                    if controller.can_repair():
+
+                        controller.begin_repair()
+
+                    else:
+
+                        controller.rollback()
+                        controller.fail()
+
+                        state.completed = True
+
+                else:
+
+                    file_path = arguments.get(
+                        "file_path"
+                    )
+
+                    print(
+                        "\n[File modification successful]"
+                    )
+
+                    # ----------------------------------------
+                    # PYTHON SYNTAX VERIFICATION
+                    # ----------------------------------------
+
+                    if (
+                        file_path
+                        and file_path.endswith(".py")
+                    ):
+
+                        ok, message = (
+                            verify_python_file(
+                                file_path
+                            )
+                        )
+
+                        if ok:
+
+                            print(
+                                f"\n[Verification] "
+                                f"{message}"
+                            )
+
+                            state.record_verification(
+                                message,
+                                True,
+                            )
+
+                        else:
+
+                            print(
+                                f"\n[Verification failed] "
+                                f"{message}"
+                            )
+
+                            state.record_error(
+                                message
+                            )
+
+                            state.record_failed_action(
+                                name,
+                                arguments,
+                                message,
+                            )
+
+                            failed_actions.add(
+                                (
+                                    file_path,
+                                    arguments.get(
+                                        "old_text"
+                                    ),
+                                )
+                            )
+
+                            controller.begin_diagnosis()
+
+                            if controller.can_repair():
+
+                                controller.begin_repair()
+
+                            else:
+
+                                controller.rollback()
+                                controller.fail()
+
+                                state.completed = True
+
+            # ------------------------------------------------
+            # OTHER TOOLS
+            # ------------------------------------------------
+
+            else:
+
+                if success:
+
+                    print(
+                        "\n[Tool successful]"
+                    )
+
+                else:
+
+                    error = (
+                        result.get("error")
+                        if isinstance(
+                            result,
+                            dict,
+                        )
+                        else "Tool failed."
+                    )
+
+                    print(
+                        "\n[Tool failed]"
+                    )
+
+                    print(
+                        f"Error: {error}"
+                    )
+
+                    state.record_error(
+                        error
+                    )
+
+                    state.record_failed_action(
+                        name,
+                        arguments,
+                        error,
+                    )
+
+            # ------------------------------------------------
+            # SEND TOOL RESULT
             # ------------------------------------------------
 
             messages.append({
@@ -1460,15 +1671,22 @@ Begin by inspecting the project.
                 "content": result_text,
             })
 
+            # ------------------------------------------------
+            # HARD STOP
+            # ------------------------------------------------
+
+            if state.completed:
+                break
+
         # ----------------------------------------------------
-        # STOP IF COMPLETED
+        # STOP
         # ----------------------------------------------------
 
         if state.completed:
             break
 
         # ----------------------------------------------------
-        # CONTINUE AFTER TOOLS
+        # CONTINUE
         # ----------------------------------------------------
 
         messages.append({
@@ -1476,36 +1694,36 @@ Begin by inspecting the project.
             "content": """
 Continue working on the objective.
 
-IMPORTANT:
+Do not declare completion merely because a tool succeeded.
 
-A successful tool call does NOT automatically mean the
-objective is complete.
-
-If you are still inspecting:
+If the task is still being inspected:
 - inspect the relevant file
-- read the actual contents
-- analyze the code
+- read its actual contents
+- analyze the actual code
 
 If implementation is required:
 - make the smallest necessary change
 
-If a modification was made:
-- verify it
+After modifying a file:
+- verify the modification
+
+For a Python repair:
+- run the requested Python file
+- inspect the complete output
 
 If verification fails:
-- inspect the actual failure
+- inspect the actual error
 - diagnose the cause
 - make one targeted correction
-- verify again
+- run verification again
 
 NEVER:
 - repeat an identical tool call
-- repeat an edit whose old_text was not found
+- repeat a failed edit
 - invent file contents
 - modify unrelated files
 
-When the user's objective has genuinely been verified,
-stop immediately.
+If the objective is genuinely verified, stop.
 """,
         })
 
@@ -1532,7 +1750,7 @@ stop immediately.
 # ============================================================
 
 def ask_model(
-    message
+    message,
 ):
 
     return run_agent(
