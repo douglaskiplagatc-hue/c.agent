@@ -66,11 +66,7 @@ class TaskState:
     # VERIFICATION
     # -------------------------
 
-    def record_verification(
-        self,
-        description,
-        success,
-    ):
+    def record_verification(self, description, success):
 
         self.verifications.append({
             "description": description,

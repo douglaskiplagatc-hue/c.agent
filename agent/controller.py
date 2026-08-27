@@ -29,6 +29,10 @@ class AgentController:
         self.state = state
         self.phase = TaskPhase.PLANNING
 
+    # -------------------------
+    # PHASE CONTROL
+    # -------------------------
+
     def set_phase(self, phase):
 
         self.phase = phase
@@ -39,9 +43,7 @@ class AgentController:
 
     def prepare_workspace(self):
 
-        self.set_phase(
-            TaskPhase.CHECKPOINT
-        )
+        self.set_phase(TaskPhase.CHECKPOINT)
 
         status = git_status()
 
@@ -75,37 +77,39 @@ class AgentController:
 
         return True
 
+    # -------------------------
+    # WORK PHASES
+    # -------------------------
+
     def begin_inspection(self):
 
-        self.set_phase(
-            TaskPhase.INSPECTING
-        )
+        self.set_phase(TaskPhase.INSPECTING)
 
     def begin_implementation(self):
 
-        self.set_phase(
-            TaskPhase.IMPLEMENTING
-        )
+        self.set_phase(TaskPhase.IMPLEMENTING)
 
     def begin_verification(self):
 
-        self.set_phase(
-            TaskPhase.VERIFYING
-        )
+        self.set_phase(TaskPhase.VERIFYING)
 
     def begin_diagnosis(self):
 
-        self.set_phase(
-            TaskPhase.DIAGNOSING
-        )
+        self.set_phase(TaskPhase.DIAGNOSING)
+
+    # -------------------------
+    # REPAIR
+    # -------------------------
 
     def begin_repair(self):
 
+        if not self.can_repair():
+
+            return False
+
         self.state.attempts += 1
 
-        self.set_phase(
-            TaskPhase.REPAIRING
-        )
+        self.set_phase(TaskPhase.REPAIRING)
 
         print(
             f"[Repair] Attempt "
@@ -113,9 +117,50 @@ class AgentController:
             f"{self.state.max_attempts}"
         )
 
+        return True
+
     def can_repair(self):
 
         return self.state.can_retry()
+
+    def is_repeated_failed_action(
+        self,
+        tool_name,
+        arguments,
+    ):
+
+        for failure in self.state.failed_actions:
+
+            if (
+                failure["tool"] == tool_name
+                and failure["arguments"] == arguments
+            ):
+                return True
+
+        return False
+
+    # -------------------------
+    # FAILURE RECORDING
+    # -------------------------
+
+    def record_failure(
+        self,
+        tool_name,
+        arguments,
+        error,
+    ):
+
+        self.state.record_failed_action(
+            tool_name,
+            arguments,
+            error,
+        )
+
+        self.state.record_error(error)
+
+    # -------------------------
+    # ROLLBACK
+    # -------------------------
 
     def rollback(self):
 
@@ -147,6 +192,10 @@ class AgentController:
 
         return False
 
+    # -------------------------
+    # COMPLETE / FAIL
+    # -------------------------
+
     def complete(self):
 
         self.state.success = True
@@ -164,33 +213,3 @@ class AgentController:
         self.set_phase(
             TaskPhase.FAILED
         )
-def is_repeated_failed_action(
-    self,
-    tool_name,
-    arguments,
-):
-
-    for failure in self.state.failed_actions:
-
-        if (
-            failure["tool"] == tool_name
-            and failure["arguments"] == arguments
-        ):
-            return True
-
-    return False
-def is_repeated_failed_action(
-    self,
-    tool_name,
-    arguments,
-):
-
-    for failure in self.state.failed_actions:
-
-        if (
-            failure["tool"] == tool_name
-            and failure["arguments"] == arguments
-        ):
-            return True
-
-    return False
