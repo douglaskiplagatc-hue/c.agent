@@ -5,7 +5,7 @@ from agent.tools import (
     git_checkpoint,
     git_rollback,
 )
-
+from config import SKIP_GIT_CHECKPOINT
 
 class TaskPhase(Enum):
     PLANNING = "planning"
@@ -41,8 +41,9 @@ class AgentController:
 
     def prepare_workspace(self):
 
-        # Read-only tasks do not need a Git checkpoint.
-        if not self.state.requires_modification:
+        if SKIP_GIT_CHECKPOINT:
+            print("[Git] Checkpoint skipped by configuration.")
+            self.state.checkpoint_created = False
             return True
 
         self.set_phase(TaskPhase.CHECKPOINT)
@@ -50,28 +51,19 @@ class AgentController:
         status = git_status()
 
         if not status.get("success"):
-            print(
-                "[Git] Workspace is not a Git repository."
-            )
+            print("[Git] Workspace is not a Git repository.")
             return False
 
         checkpoint = git_checkpoint(
             "Agent pre-task checkpoint"
-        )
+    )
 
         if checkpoint.get("success"):
             self.state.checkpoint_created = True
-
-            print(
-                "[Git] Checkpoint ready."
-            )
-
+            print("[Git] Checkpoint ready.")
             return True
 
-        print(
-            "[Git] No new checkpoint needed."
-        )
-
+        print("[Git] No new checkpoint needed.")
         self.state.checkpoint_created = True
 
         return True

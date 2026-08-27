@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 
+SKIP_GIT_CHECKPOINT = os.getenv("SKIP_GIT_CHECKPOINT", "0").lower() in ("1", "true", "yes")
 load_dotenv()
 
 LLM7_API_KEY = os.getenv("LLM7_API_KEY")
