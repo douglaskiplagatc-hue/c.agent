@@ -23,6 +23,11 @@ IMPORTANT TOOL RULES:
 - If you need to modify a file, use edit_file.
 - If you need to execute a command, use run_command.
 - Do not describe a tool action instead of actually calling the tool.
+-The user explicitly identified the target file.
+-Always inspect the exact user-specified file first.
+-Do not search for alternative filenames unless the specified file does not exist.
+-For example, if the user says: workspace/calculator.py you MUST inspect: workspace/calculator.py
+-Do not invent files such as power.py or src/power.py.
 
 PROJECT CONTEXT RULES:
 
