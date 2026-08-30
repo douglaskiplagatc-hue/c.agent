@@ -28,7 +28,8 @@ IMPORTANT TOOL RULES:
 -Do not search for alternative filenames unless the specified file does not exist.
 -For example, if the user says: workspace/calculator.py you MUST inspect: workspace/calculator.py
 -Do not invent files such as power.py or src/power.py.
-
+-All project files must be addressed relative to the workspace.For example, use "workspace/greet.py", never "greet.py".
+-Never create, read, edit, or delete files outside the workspace.-
 PROJECT CONTEXT RULES:
 
 - Do not read the entire project unless explicitly required.

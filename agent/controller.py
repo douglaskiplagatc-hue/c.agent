@@ -7,6 +7,7 @@ from agent.tools import (
 )
 from config import SKIP_GIT_CHECKPOINT
 
+
 class TaskPhase(Enum):
     PLANNING = "planning"
     MEMORY = "memory"
@@ -22,9 +23,9 @@ class TaskPhase(Enum):
 
 
 class AgentController:
-
-    def __init__(self, state):
+    def __init__(self, state, reporter):
         self.state = state
+        self.reporter = reporter
         self.phase = TaskPhase.PLANNING
 
     def set_phase(self, phase):
@@ -35,14 +36,13 @@ class AgentController:
 
         self.phase = phase
 
-        print(
-            f"\n[PHASE → {phase.value.upper()}]"
-        )
+        if self.reporter:
+            self.reporter.phase(f"{phase.value.upper()}")
 
     def prepare_workspace(self):
 
         if SKIP_GIT_CHECKPOINT:
-            print("[Git] Checkpoint skipped by configuration.")
+            self.reporter.debug("[Git] Checkpoint skipped by configuration.")
             self.state.checkpoint_created = False
             return True
 
@@ -51,19 +51,17 @@ class AgentController:
         status = git_status()
 
         if not status.get("success"):
-            print("[Git] Workspace is not a Git repository.")
+            self.reporter.error("[Git] Workspace is not a Git repository.")
             return False
 
-        checkpoint = git_checkpoint(
-            "Agent pre-task checkpoint"
-    )
+        checkpoint = git_checkpoint("Agent pre-task checkpoint")
 
         if checkpoint.get("success"):
             self.state.checkpoint_created = True
-            print("[Git] Checkpoint ready.")
+            self.reporter.debug("[Git] Checkpoint ready.")
             return True
 
-        print("[Git] No new checkpoint needed.")
+        self.reporter.debug("[Git] No checkpoint available.")
         self.state.checkpoint_created = True
 
         return True
@@ -86,11 +84,7 @@ class AgentController:
 
         self.set_phase(TaskPhase.REPAIRING)
 
-        print(
-            f"[Repair] Attempt "
-            f"{self.state.attempts}/"
-            f"{self.state.max_attempts}"
-        )
+        self.reporter.debug(f"[Repair] Attempt {self.state.attempts}/{self.state.max_attempts}")
 
     def can_repair(self):
         return self.state.can_retry()
@@ -98,9 +92,7 @@ class AgentController:
     def rollback(self):
 
         if not self.state.checkpoint_created:
-            print(
-                "[Git] No checkpoint available."
-            )
+            self.reporter.debug("[Git] No checkpoint available.")
             return False
 
         self.set_phase(TaskPhase.ROLLBACK)
@@ -108,14 +100,10 @@ class AgentController:
         result = git_rollback()
 
         if result.get("success"):
-            print(
-                "[Git] Rollback successful."
-            )
+            self.reporter.debug("[Git] Rollback successful.")
             return True
 
-        print(
-            "[Git] Rollback failed."
-        )
+        self.reporter.error("[Git] Rollback failed.")
 
         return False
 

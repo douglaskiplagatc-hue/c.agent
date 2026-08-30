@@ -17,6 +17,7 @@ class TaskState:
         self.commands = []
         self.errors = []
         self.verifications = []
+        self.llm_verification_count = 0
 
         self.tool_history = []
         self.failed_actions = []
@@ -24,6 +25,7 @@ class TaskState:
         self.memory_loaded = False
         self.checkpoint_created = False
         self.requires_modification = False
+        self.functional_verification_passed = False
 
     # -------------------------
     # FILE TRACKING

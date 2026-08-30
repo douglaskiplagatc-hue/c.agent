@@ -2,7 +2,6 @@ from agent.brain import ask_model
 
 
 def main():
-
     print()
     print("================================")
     print("        MY CODING AGENT")
@@ -10,16 +9,10 @@ def main():
     print()
 
     while True:
-
         task = input("What should I do? ").strip()
-
         if not task:
             continue
-
-        if task.lower() in {
-            "exit",
-            "quit",
-        }:
+        if task.lower() in {"exit", "quit"}:
             print("Agent stopped.")
             break
 
@@ -28,19 +21,10 @@ def main():
         print()
 
         try:
+            ask_model(task, verbose=verbose)
 
-            result = ask_model(task)
-
-            print()
-            print("================================")
-            print("AGENT RESULT")
-            print("================================")
-            print()
-            print(result)
-            print()
 
         except Exception as error:
-
             print()
             print("AGENT ERROR")
             print("------------")
@@ -49,4 +33,8 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+
+    verbose = "--verbose" in sys.argv or "-v" in sys.argv
+
     main()
