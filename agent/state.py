@@ -1,5 +1,4 @@
 class TaskState:
-
     def __init__(self, objective):
 
         self.objective = objective
@@ -71,10 +70,12 @@ class TaskState:
 
     def record_verification(self, description, success):
 
-        self.verifications.append({
-            "description": description,
-            "success": success,
-        })
+        self.verifications.append(
+            {
+                "description": description,
+                "success": success,
+            }
+        )
 
     # -------------------------
     # TOOL HISTORY
@@ -87,11 +88,13 @@ class TaskState:
         result,
     ):
 
-        self.tool_history.append({
-            "tool": tool_name,
-            "arguments": arguments,
-            "result": result,
-        })
+        self.tool_history.append(
+            {
+                "tool": tool_name,
+                "arguments": arguments,
+                "result": result,
+            }
+        )
 
     # -------------------------
     # FAILED ACTIONS
@@ -104,11 +107,13 @@ class TaskState:
         error,
     ):
 
-        self.failed_actions.append({
-            "tool": tool_name,
-            "arguments": arguments,
-            "error": str(error),
-        })
+        self.failed_actions.append(
+            {
+                "tool": tool_name,
+                "arguments": arguments,
+                "error": str(error),
+            }
+        )
 
     def recent_failures(self):
 
@@ -135,27 +140,22 @@ class TaskState:
         ]
 
         for failure in failures:
+            lines.append(f"Tool: {failure['tool']}")
 
-            lines.append(
-                f"Tool: {failure['tool']}"
-            )
+            lines.append(f"Arguments: {failure['arguments']}")
 
-            lines.append(
-                f"Arguments: {failure['arguments']}"
-            )
-
-            lines.append(
-                f"Error: {failure['error']}"
-            )
+            lines.append(f"Error: {failure['error']}")
 
             lines.append("")
 
-        lines.extend([
-            "IMPORTANT:",
-            "Do not repeat the failed action blindly.",
-            "Use the failure as evidence.",
-            "Inspect the relevant code before repairing.",
-        ])
+        lines.extend(
+            [
+                "IMPORTANT:",
+                "Do not repeat the failed action blindly.",
+                "Use the failure as evidence.",
+                "Inspect the relevant code before repairing.",
+            ]
+        )
 
         return "\n".join(lines)
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 import ast
+from config import PROJECT_WORKSPACE
 
 
 IGNORED_DIRS = {
@@ -23,20 +24,16 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
-def build_index(root="workspace"):
-    root = Path(root)
+def build_index(root=None):
+    root = Path(root or PROJECT_WORKSPACE)
 
     index = []
 
     for path in root.rglob("*"):
-
         if not path.is_file():
             continue
 
-        if any(
-            part in IGNORED_DIRS
-            for part in path.parts
-        ):
+        if any(part in IGNORED_DIRS for part in path.parts):
             continue
 
         if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
@@ -50,11 +47,8 @@ def build_index(root="workspace"):
         }
 
         if path.suffix.lower() == ".py":
-
             try:
-                source = path.read_text(
-                    encoding="utf-8"
-                )
+                source = path.read_text(encoding="utf-8")
 
                 tree = ast.parse(source)
 
@@ -88,7 +82,7 @@ def build_index(root="workspace"):
     return index
 
 
-def search_index(query, root="workspace"):
+def search_index(query, root=None):
     query = query.lower()
 
     index = build_index(root)
@@ -96,7 +90,6 @@ def search_index(query, root="workspace"):
     results = []
 
     for entry in index:
-
         score = 0
 
         filename = entry["file"].lower()
@@ -108,7 +101,6 @@ def search_index(query, root="workspace"):
             "functions",
             [],
         ):
-
             if query in function.lower():
                 score += 8
 
@@ -116,12 +108,10 @@ def search_index(query, root="workspace"):
             "classes",
             [],
         ):
-
             if query in class_name.lower():
                 score += 8
 
         if score > 0:
-
             result = dict(entry)
             result["score"] = score
 

@@ -1,14 +1,14 @@
 import subprocess
+from config import PROJECT_WORKSPACE
 
 
 def run_verification(command):
 
     try:
-
         result = subprocess.run(
             command,
             shell=True,
-            cwd="workspace",
+            cwd=PROJECT_WORKSPACE,
             capture_output=True,
             text=True,
             timeout=120,
@@ -23,7 +23,6 @@ def run_verification(command):
         }
 
     except subprocess.TimeoutExpired:
-
         return {
             "success": False,
             "command": command,
@@ -31,7 +30,6 @@ def run_verification(command):
         }
 
     except Exception as error:
-
         return {
             "success": False,
             "command": command,

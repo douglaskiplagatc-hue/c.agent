@@ -1,9 +1,9 @@
 from enum import Enum
 
 from agent.tools import (
-    git_status,
     git_checkpoint,
     git_rollback,
+    git_status,
 )
 from config import SKIP_GIT_CHECKPOINT
 
@@ -29,42 +29,35 @@ class AgentController:
         self.phase = TaskPhase.PLANNING
 
     def set_phase(self, phase):
-
         # Don't print the same phase twice.
         if self.phase == phase:
             return
-
         self.phase = phase
-
         if self.reporter:
             self.reporter.phase(f"{phase.value.upper()}")
 
     def prepare_workspace(self):
-
         if SKIP_GIT_CHECKPOINT:
             self.reporter.debug("[Git] Checkpoint skipped by configuration.")
             self.state.checkpoint_created = False
             return True
 
         self.set_phase(TaskPhase.CHECKPOINT)
-
         status = git_status()
-
         if not status.get("success"):
             self.reporter.error("[Git] Workspace is not a Git repository.")
             return False
 
         checkpoint = git_checkpoint("Agent pre-task checkpoint")
-
         if checkpoint.get("success"):
             self.state.checkpoint_created = True
             self.reporter.debug("[Git] Checkpoint ready.")
             return True
 
+        # FIXED: If checkpoint fails, state must reflect reality
         self.reporter.debug("[Git] No checkpoint available.")
-        self.state.checkpoint_created = True
-
-        return True
+        self.state.checkpoint_created = False
+        return False
 
     def begin_inspection(self):
         self.set_phase(TaskPhase.INSPECTING)
@@ -79,44 +72,33 @@ class AgentController:
         self.set_phase(TaskPhase.DIAGNOSING)
 
     def begin_repair(self):
-
         self.state.attempts += 1
-
         self.set_phase(TaskPhase.REPAIRING)
-
-        self.reporter.debug(f"[Repair] Attempt {self.state.attempts}/{self.state.max_attempts}")
+        self.reporter.debug(
+            f"[Repair] Attempt {self.state.attempts}/{self.state.max_attempts}"
+        )
 
     def can_repair(self):
         return self.state.can_retry()
 
     def rollback(self):
-
         if not self.state.checkpoint_created:
             self.reporter.debug("[Git] No checkpoint available.")
             return False
-
         self.set_phase(TaskPhase.ROLLBACK)
-
         result = git_rollback()
-
         if result.get("success"):
             self.reporter.debug("[Git] Rollback successful.")
             return True
-
         self.reporter.error("[Git] Rollback failed.")
-
         return False
 
     def complete(self):
-
         self.state.success = True
         self.state.completed = True
-
         self.set_phase(TaskPhase.COMPLETED)
 
     def fail(self):
-
         self.state.success = False
         self.state.completed = True
-
         self.set_phase(TaskPhase.FAILED)

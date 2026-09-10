@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AetherIDE - Autonomous Debug Agent Workbench</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          surface: "#0f131c",
+          "on-surface": "#dfe2ee",
+          "on-surface-variant": "#bcc9cd",
+          "surface-container-lowest": "#0a0e16",
+          "surface-container-low": "#181c24",
+          "surface-container": "#1c2028",
+          "surface-container-high": "#262a33",
+          "surface-container-highest": "#31353e",
+          "surface-bright": "#353942",
+          "primary": "#4cd7f6",
+          "primary-fixed-dim": "#4cd7f6",
+          "on-primary": "#003640",
+          "on-primary-container": "#00424f",
+          "primary-container": "#06b6d4",
+          "secondary": "#c0c1ff",
+          "on-secondary": "#1000a9",
+          "secondary-container": "#3131c0",
+          "on-secondary-container": "#b0b2ff",
+          "tertiary": "#d0bcff",
+          "on-tertiary": "#3c0091",
+          "tertiary-container": "#b395ff",
+          "error": "#ffb4ab",
+          "on-error": "#690005",
+          "error-container": "#93000a",
+          "outline": "#869397",
+          "outline-variant": "#3d494c",
+          "background": "#0f131c",
+          "on-background": "#dfe2ee",
+          "surface-tint": "#4cd7f6",
+          "inverse-surface": "#dfe2ee",
+          "inverse-on-surface": "#2c3039",
+          "inverse-primary": "#00687a",
+        },
+        borderRadius: {
+          DEFAULT: "0.125rem",
+          lg: "0.25rem",
+          xl: "0.5rem",
+          full: "0.75rem",
+        },
+        spacing: {
+          "space-sm": "0.375rem",
+          "space-2xs": "0.125rem",
+          "space-md": "0.5rem",
+          "space-xl": "1rem",
+          "editor-pad-y": "0.5rem",
+          "pane-gutter": "1px",
+          "space-2xl": "1.5rem",
+          "space-3xl": "2rem",
+          "editor-pad-x": "1rem",
+          "space-xs": "0.25rem",
+          "space-lg": "0.75rem",
+        },
+        fontFamily: {
+          "headline-sm": ["Inter"],
+          "label-sm": ["Inter"],
+          "body-md": ["JetBrains Mono"],
+          "body-lg": ["JetBrains Mono"],
+          "code-xs": ["JetBrains Mono"],
+          "label-md": ["Inter"],
+          "title-md": ["Inter"],
+          "headline-lg": ["Inter"],
+          "headline-md": ["Inter"],
+          "title-sm": ["Inter"],
+          "body-sm": ["JetBrains Mono"],
+        },
+        fontSize: {
+          "headline-sm": ["15px", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "600" }],
+          "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.03em", fontWeight: "600" }],
+          "body-md": ["13px", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "body-lg": ["14px", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "code-xs": ["11px", { lineHeight: "15px", letterSpacing: "0em", fontWeight: "400" }],
+          "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "500" }],
+          "title-md": ["13px", { lineHeight: "18px", letterSpacing: "-0.005em", fontWeight: "500" }],
+          "headline-lg": ["28px", { lineHeight: "34px", letterSpacing: "-0.02em", fontWeight: "600" }],
+          "headline-md": ["20px", { lineHeight: "26px", letterSpacing: "-0.015em", fontWeight: "600" }],
+          "title-sm": ["12px", { lineHeight: "16px", letterSpacing: "0em", fontWeight: "500" }],
+          "body-sm": ["12px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  .material-symbols-outlined {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0a0e16; }
+  ::-webkit-scrollbar-thumb { background: #262a33; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3d494c; }
+
+  .syntax-keyword { color: #f472b6; }
+  .syntax-type { color: #4cd7f6; }
+  .syntax-func { color: #fde047; }
+  .syntax-comment { color: #869397; font-style: italic; }
+  .syntax-string { color: #86efac; }
+  .syntax-const { color: #c084fc; }
+
+  .line-numbers {
+    user-select: none;
+    color: #869397;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    text-align: right;
+    padding-right: 0.75rem;
+    min-width: 2.5rem;
+    border-right: 1px solid #3d494c;
+    background: #0a0e16;
+  }
+  .editor-textarea {
+    background: transparent;
+    color: #dfe2ee;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 0.5rem 1rem;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    tab-size: 4;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+  }
+  .editor-textarea:focus { outline: none; }
+
+  .file-tree-item {
+    cursor: pointer;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 2px;
+  }
+  .file-tree-item:hover { background: #262a33; }
+  .file-tree-item.active {
+    background: #1c2028;
+    border-left: 2px solid #4cd7f6;
+    color: #4cd7f6;
+  }
+  .tab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    height: 100%;
+    border-right: 1px solid #3d494c;
+    cursor: pointer;
+    font-size: 12px;
+    color: #bcc9cd;
+    background: #181c24;
+  }
+  .tab-item.active {
+    background: #0f131c;
+    color: #dfe2ee;
+    border-top: 2px solid #4cd7f6;
+  }
+  .tab-item .close-tab { margin-left: 4px; cursor: pointer; opacity: 0.5; }
+  .tab-item .close-tab:hover { opacity: 1; }
+
+  .terminal-output {
+    white-space: pre-wrap;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    background: #1c2028;
+    border: 1px solid #3d494c;
+    border-radius: 4px;
+    min-width: 180px;
+    z-index: 100;
+    padding: 4px 0;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .dropdown-menu.show { display: block !important; }
+  .dropdown-menu a {
+    display: block;
+    padding: 6px 16px;
+    color: #dfe2ee;
+    text-decoration: none;
+    font-size: 12px;
+  }
+  .dropdown-menu a:hover { background: #262a33; }
+  .dropdown-menu hr { border-color: #3d494c; margin: 4px 0; }
+
+  /* Ensure bottom panels are properly sized */
+  .bottom-panel {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .bottom-panel.hidden {
+    display: none !important;
+  }
+  .bottom-tab {
+    cursor: pointer;
+  }
+  .bottom-tab.active {
+    background: #0f131c;
+    color: #4cd7f6;
+    border-top: 2px solid #4cd7f6;
+  }
+  .settings-view {
+    background: radial-gradient(circle at 75% 0%, rgba(76,215,246,0.08), transparent 34%), #0f131c;
+  }
+  .settings-nav-item.active {
+    color: #4cd7f6;
+    background: #1c2028;
+    border-left-color: #4cd7f6;
+  }
+  .accent-swatch.active {
+    outline: 2px solid #dfe2ee;
+    outline-offset: 2px;
+  }
+  .task-filter.active {
+    color: #4cd7f6;
+    border-bottom-color: #4cd7f6;
+  }
+</style>
+</head>
+<body class="bg-surface text-on-surface font-body-sm antialiased h-screen w-screen overflow-hidden flex flex-col select-none">
+
+<!-- ==================== SHARED TOPNAVBAR ==================== -->
+<header class="flex justify-between items-center w-full px-space-md h-9 z-50 select-none bg-surface-container-low border-b border-outline-variant shrink-0">
+  <div class="flex items-center gap-space-md">
+    <div class="flex items-center gap-space-xs pr-space-xs border-r border-outline-variant">
+      <span class="w-2.5 h-2.5 rounded-full bg-error-container/80 border border-error/40 hover:opacity-80 cursor-pointer"></span>
+      <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 border border-amber-400/40 hover:opacity-80 cursor-pointer"></span>
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/40 hover:opacity-80 cursor-pointer"></span>
+      <span class="text-title-md font-title-md font-bold text-primary tracking-tight ml-space-xs flex items-center gap-1">
+        <span class="material-symbols-outlined text-primary text-base">terminal</span>
+        AetherIDE
+      </span>
+    </div>
+    <nav class="flex items-center space-x-0.5 text-label-md font-label-md relative">
+      <!-- File Menu -->
+      <div class="relative group">
+        <button class="text-on-surface-variant px-2 py-1 hover:bg-surface-container-high hover:text-on-surface rounded-DEFAULT transition-colors">File</button>
+        <div class="dropdown-menu group-hover:show" style="display:none;">
+          <a href="#" data-action="choose-workspace">Open Folder...</a>
+          <hr/>
+          <a href="#" data-action="new-file">New File</a>
+          <a href="#" data-action="new-folder">New Folder</a>
+          <hr/>
+          <a href="#" data-action="save">Save</a>
+          <a href="#" data-action="save-all">Save All</a>
+          <hr/>
+          <a href="#" data-action="exit">Exit</a>
+        </div>
+      </div>
+      <div class="relative group">
+        <button class="text-on-surface-variant px-2 py-1 hover:bg-surface-container-high hover:text-on-surface rounded-DEFAULT transition-colors">Edit</button>
+        <div class="dropdown-menu group-hover:show" style="display:none;">
+          <a href="#" data-action="undo">Undo</a>
+          <a href="#" data-action="redo">Redo</a>
+          <hr/>
+          <a href="#" data-action="find">Find</a>
+          <a href="#" data-action="replace">Replace</a>
+        </div>
+      </div>
+      <div class="relative group">
+        <button class="text-on-surface-variant px-2 py-1 hover:bg-surface-container-high hover:text-on-surface rounded-DEFAULT transition-colors">View</button>
+        <div class="dropdown-menu group-hover:show" style="display:none;">
+          <a href="#" data-action="refresh">Refresh</a>
+          <a href="#" data-action="toggle-terminal">Toggle Terminal</a>
+        </div>
+      </div>
+      <div class="relative group">
+        <button class="text-on-surface-variant px-2 py-1 hover:bg-surface-container-high hover:text-on-surface rounded-DEFAULT transition-colors">Run</button>
+        <div class="dropdown-menu group-hover:show" style="display:none;">
+          <a href="#" data-action="run-file">Run File</a>
+          <a href="#" data-action="run-tests">Run Tests</a>
+        </div>
+      </div>
+      <button id="top-terminal-btn" class="text-on-surface-variant px-2 py-1 hover:bg-surface-container-high hover:text-on-surface rounded-DEFAULT transition-colors">Terminal</button>
+      <button id="top-agent-btn" class="text-on-surface bg-surface-container rounded-DEFAULT px-2 py-1 hover:bg-surface-container-high transition-colors font-semibold text-primary flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+        Agent
+      </button>
+    </nav>
+  </div>
+
+  <!-- Center Search Bar -->
+  <div class="hidden lg:flex items-center justify-center flex-1 max-w-md px-space-md">
+    <div class="flex items-center w-full bg-surface-container-lowest border border-outline-variant/80 rounded-DEFAULT px-space-md py-0.5 hover:border-primary/50 transition-colors cursor-pointer group">
+      <span class="material-symbols-outlined text-outline text-sm mr-2 group-hover:text-primary">search</span>
+      <input id="global-search" type="text" class="w-full bg-transparent text-code-xs font-code-xs text-on-surface placeholder-outline focus:outline-none" placeholder="Search project..." />
+      <kbd class="text-[10px] bg-surface-container-high text-on-surface-variant px-1 rounded border border-outline-variant font-mono">⌘K</kbd>
+    </div>
+  </div>
+
+  <!-- Right Status -->
+  <div class="flex items-center gap-space-md">
+    <div class="flex items-center gap-1 px-2 py-0.5 rounded-DEFAULT bg-surface-container text-on-surface-variant text-label-sm border border-outline-variant/60">
+      <span class="material-symbols-outlined text-sm text-primary">fork_right</span>
+      <span id="git-branch" class="text-primary font-mono font-medium">main</span>
+      <span id="git-changes" class="text-[10px] text-amber-400 font-bold ml-0.5">*</span>
+    </div>
+    <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-DEFAULT bg-surface-container-high border border-primary/30">
+      <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+      <span class="text-label-sm font-label-sm text-primary">Agent</span>
+      <span id="agent-status" class="text-[10px] bg-primary/20 text-primary-fixed-dim px-1 rounded">Idle</span>
+    </div>
+    <div class="hidden xl:flex items-center gap-1.5 text-code-xs font-code-xs text-on-surface-variant">
+      <span class="text-outline">Tokens:</span>
+      <span class="text-on-surface font-semibold" id="token-count">0</span>
+      <div class="w-12 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+        <div id="token-meter" class="bg-primary h-full w-0"></div>
+      </div>
+    </div>
+    <div class="flex items-center gap-1 pl-space-xs border-l border-outline-variant">
+      <button id="review-diffs-btn" class="px-2 py-0.5 rounded-DEFAULT bg-surface-container hover:bg-surface-container-high text-on-surface text-label-sm font-label-sm border border-outline-variant transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-sm text-amber-400">difference</span>
+        Review Diffs (<span id="diff-count">0</span>)
+      </button>
+      <button id="deploy-patch-btn" class="px-2 py-0.5 rounded-DEFAULT bg-primary text-on-primary font-bold text-label-sm font-label-sm hover:bg-primary-fixed-dim transition-all shadow-[0_0_8px_rgba(76,215,246,0.25)] flex items-center gap-1">
+        <span class="material-symbols-outlined text-sm">rocket_launch</span>
+        Deploy Patch
+      </button>
+    </div>
+    <div class="flex items-center text-on-surface-variant">
+      <button id="run-current-file" class="p-1 hover:text-on-surface hover:bg-surface-container rounded-DEFAULT"><span class="material-symbols-outlined">play_arrow</span></button>
+      <button id="debug-btn" class="p-1 hover:text-on-surface hover:bg-surface-container rounded-DEFAULT"><span class="material-symbols-outlined">bug_report</span></button>
+      <button id="toggle-sidebar" class="p-1 hover:text-on-surface hover:bg-surface-container rounded-DEFAULT"><span class="material-symbols-outlined">view_sidebar</span></button>
+      <button id="top-settings-btn" class="p-1 hover:text-on-surface hover:bg-surface-container rounded-DEFAULT" title="Settings"><span class="material-symbols-outlined">settings</span></button>
+    </div>
+  </div>
+</header>
+
+<!-- ==================== MAIN WORKBENCH ==================== -->
+<div id="workbench-view" class="flex flex-1 w-full overflow-hidden relative">
+
+  <!-- Activity Bar -->
+  <aside class="fixed left-0 top-9 bottom-0 w-12 flex flex-col justify-between items-center py-space-xs z-40 bg-surface-container-lowest border-r border-outline-variant">
+    <div class="flex flex-col items-center w-full space-y-1">
+      <button id="explorer-tab-btn" class="w-full h-10 flex items-center justify-center text-primary border-l-2 border-primary bg-surface-container-low cursor-pointer transition-all duration-150">
+        <span class="material-symbols-outlined text-xl">folder_open</span>
+      </button>
+      <button id="search-tab-btn" class="w-full h-10 flex items-center justify-center text-on-surface-variant border-l-2 border-transparent hover:text-on-surface hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-xl">search</span>
+      </button>
+      <button id="git-tab-btn" class="w-full h-10 flex items-center justify-center text-on-surface-variant border-l-2 border-transparent hover:text-on-surface hover:bg-surface-container transition-colors relative">
+        <span class="material-symbols-outlined text-xl">fork_right</span>
+        <span id="git-badge" class="absolute top-1.5 right-2 bg-primary text-on-primary font-bold text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-mono">0</span>
+      </button>
+      <button id="run-tab-btn" class="w-full h-10 flex items-center justify-center text-on-surface-variant border-l-2 border-transparent hover:text-on-surface hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-xl">play_circle</span>
+      </button>
+      <button id="agent-tab-btn" class="w-full h-10 flex items-center justify-center text-tertiary border-l-2 border-transparent hover:text-on-surface hover:bg-surface-container transition-colors relative">
+        <span class="material-symbols-outlined text-xl">psychology</span>
+        <span id="agent-pulse" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+      </button>
+      <button id="tasks-tab-btn" class="w-full h-10 flex items-center justify-center text-on-surface-variant border-l-2 border-transparent hover:text-on-surface hover:bg-surface-container transition-colors" title="Tasks">
+        <span class="material-symbols-outlined text-xl">extension</span>
+      </button>
+    </div>
+    <div class="flex flex-col items-center w-full space-y-1">
+      <button class="w-full h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-xl">account_circle</span>
+      </button>
+      <button id="sidebar-settings-btn" class="w-full h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Settings">
+        <span class="material-symbols-outlined text-xl">settings</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Workspace -->
+  <div class="ml-12 flex flex-1 h-full overflow-hidden">
+
+    <!-- Explorer Panel -->
+    <section id="explorer-pane" class="w-64 bg-surface-container-lowest border-r border-outline-variant flex flex-col shrink-0 h-full">
+      <div class="h-8 px-space-md flex items-center justify-between border-b border-outline-variant bg-surface-container-low text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant">
+        <span class="flex items-center gap-1 text-on-surface font-semibold">
+          <span class="material-symbols-outlined text-xs">expand_more</span>
+          <span id="project-name">workspace</span>
+        </span>
+        <div class="flex items-center space-x-1 text-outline">
+          <button id="choose-workspace-btn" class="hover:text-primary p-0.5" title="Choose workspace folder"><span class="material-symbols-outlined text-xs">folder_open</span></button>
+          <button id="new-file-btn" class="hover:text-on-surface p-0.5"><span class="material-symbols-outlined text-xs">note_add</span></button>
+          <button id="new-folder-btn" class="hover:text-on-surface p-0.5"><span class="material-symbols-outlined text-xs">create_new_folder</span></button>
+          <button id="refresh-explorer" class="hover:text-on-surface p-0.5"><span class="material-symbols-outlined text-xs">refresh</span></button>
+        </div>
+      </div>
+      <div id="file-tree" class="flex-1 overflow-y-auto py-1 font-body-sm text-xs">
+        <!-- populated by JS -->
+      </div>
+      <div class="p-space-sm border-t border-outline-variant bg-surface-container-low">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+            <span class="text-label-sm font-label-sm text-on-surface font-semibold">DEBUG SESSION</span>
+          </div>
+          <span class="text-[10px] font-mono bg-error-container/40 text-error px-1 py-0.5 rounded border border-error/30">IDLE</span>
+        </div>
+        <div class="space-y-1 text-code-xs font-code-xs text-on-surface-variant bg-surface-container-lowest p-2 rounded border border-outline-variant/60">
+          <div class="flex justify-between"><span class="text-outline">Target PID:</span><span class="text-on-surface font-mono">—</span></div>
+          <div class="flex justify-between"><span class="text-outline">Memory:</span><span class="text-on-surface font-mono">—</span></div>
+          <div class="flex justify-between"><span class="text-outline">IPC Latency:</span><span class="text-emerald-400 font-mono">—</span></div>
+          <div class="flex justify-between items-center pt-1 border-t border-outline-variant/40">
+            <span class="text-outline">Goroutines:</span><span class="text-amber-400 font-mono font-bold">—</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-2 pt-1 border-t border-outline-variant/50 text-on-surface-variant">
+          <button class="p-1 hover:text-primary hover:bg-surface-container rounded" title="Continue"><span class="material-symbols-outlined text-sm">play_arrow</span></button>
+          <button class="p-1 hover:text-primary hover:bg-surface-container rounded" title="Step Over"><span class="material-symbols-outlined text-sm">redo</span></button>
+          <button class="p-1 hover:text-primary hover:bg-surface-container rounded" title="Step Into"><span class="material-symbols-outlined text-sm">south</span></button>
+          <button class="p-1 hover:text-primary hover:bg-surface-container rounded" title="Step Out"><span class="material-symbols-outlined text-sm">north</span></button>
+          <button class="p-1 hover:text-amber-400 hover:bg-surface-container rounded" title="Restart"><span class="material-symbols-outlined text-sm">replay</span></button>
+          <button class="p-1 hover:text-error hover:bg-surface-container rounded" title="Stop"><span class="material-symbols-outlined text-sm">stop</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center + Right -->
+    <div class="flex flex-1 flex-col h-full overflow-hidden">
+      <div class="flex flex-1 h-2/3 overflow-hidden">
+
+        <!-- Editor -->
+        <main class="flex-1 flex flex-col bg-surface overflow-hidden border-r border-outline-variant">
+          <div id="editor-tabs-bar" class="h-8 bg-surface-container-lowest flex items-center border-b border-outline-variant overflow-x-auto shrink-0"></div>
+          <div class="h-6 px-space-md bg-surface-container-low/60 border-b border-outline-variant/60 flex items-center justify-between text-code-xs font-code-xs text-on-surface-variant shrink-0">
+            <div id="breadcrumb" class="flex items-center gap-1"><span>workspace</span></div>
+            <div class="flex items-center gap-2 text-outline">
+              <span>UTF-8</span>
+              <span id="file-lang">plain</span>
+              <span id="cursor-position" class="text-primary-fixed-dim">Ln 1, Col 1</span>
+            </div>
+          </div>
+
+          <!-- Patch Banner -->
+          <div id="patch-banner" class="mx-3 mt-2 mb-1 p-2 rounded-lg bg-surface-container-high border border-primary/40 flex items-center justify-between shadow-lg shrink-0 hidden">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-sm">auto_fix_high</span>
+              <span class="text-label-sm font-label-sm text-on-surface">Agent Proposed Fix: <span id="patch-summary" class="text-on-surface-variant font-normal">No patch available</span></span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="accept-patch-btn" class="px-2.5 py-0.5 rounded-DEFAULT bg-primary text-on-primary font-bold text-label-sm hover:bg-primary-fixed-dim transition-all shadow-[0_0_8px_rgba(76,215,246,0.2)] flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">check</span> Accept Patch
+              </button>
+              <button id="reject-patch-btn" class="px-2.5 py-0.5 rounded-DEFAULT bg-surface-container-highest hover:bg-surface-variant text-on-surface text-label-sm border border-outline-variant transition-colors flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">close</span> Reject
+              </button>
+              <button id="iterate-prompt-btn" class="px-2.5 py-0.5 rounded-DEFAULT bg-surface-container-highest hover:bg-surface-variant text-tertiary text-label-sm border border-tertiary/30 transition-colors flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">rate_review</span> Iterate
+              </button>
+            </div>
+          </div>
+
+          <!-- Editor -->
+          <div class="flex-1 overflow-hidden flex">
+            <div id="line-numbers" class="line-numbers overflow-y-hidden pt-2 select-none" style="padding-top:0.5rem; min-width:3rem; text-align:right; padding-right:0.75rem; border-right:1px solid #3d494c; background:#0a0e16; overflow-y:auto; height:100%;"></div>
+            <textarea id="editor-textarea" class="editor-textarea" spellcheck="false" wrap="off"></textarea>
+          </div>
+        </main>
+
+        <!-- Agent Panel -->
+        <aside id="agent-pane" class="w-96 bg-surface-container-low border-l border-outline-variant flex flex-col shrink-0 h-full">
+          <div class="h-8 px-space-md bg-surface-container-low border-b border-outline-variant flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-base">psychology</span>
+              <span class="text-label-sm font-label-sm text-on-surface font-semibold">Autonomous Debug Agent</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="agent-led" class="w-2 h-2 rounded-full bg-surface-container-highest"></span>
+              <span id="agent-status-text" class="text-[10px] font-mono text-on-surface-variant uppercase">Idle</span>
+            </div>
+          </div>
+          <div id="agent-output" class="flex-1 overflow-y-auto p-3 space-y-3 font-body-sm text-xs">
+            <div class="text-outline text-[11px]">Agent ready. Send a task.</div>
+          </div>
+          <div class="p-2 bg-surface-container-low border-t border-outline-variant shrink-0">
+            <div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-1.5 focus-within:border-primary transition-colors">
+              <div class="flex items-center justify-between mb-1 text-[10px] text-outline font-mono">
+                <div class="flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>Context: <span id="agent-context-tokens">0</span> tokens</span>
+                </div>
+                <span class="text-primary">/tools active</span>
+              </div>
+              <textarea id="agent-input" class="w-full bg-transparent text-xs font-body-sm text-on-surface placeholder-outline focus:outline-none border-none p-0 resize-none" placeholder="Instruct agent or ask 'why did this lock?'..." rows="2"></textarea>
+              <div class="flex items-center justify-between mt-1.5 pt-1 border-t border-outline-variant/30">
+                <div class="flex items-center gap-1 text-outline">
+                  <button class="hover:text-on-surface p-0.5"><span class="material-symbols-outlined text-sm">attach_file</span></button>
+                  <button class="hover:text-on-surface p-0.5"><span class="material-symbols-outlined text-sm">terminal</span></button>
+                  <button class="hover:text-on-surface p-0.5"><span class="material-symbols-outlined text-sm">mic</span></button>
+                </div>
+                <button id="agent-send-btn" class="p-1 rounded bg-primary text-on-primary hover:bg-primary-fixed-dim transition-colors flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xs font-bold">arrow_upward</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- Bottom Panels -->
+      <section class="h-1/3 bg-surface-container-lowest border-t border-outline-variant flex flex-col shrink-0">
+        <div class="h-7 px-space-md bg-surface-container-low border-b border-outline-variant flex items-center justify-between shrink-0">
+
+          <!-- BOTTOM PANEL TABS -->
+          <div class="flex items-center space-x-1 h-full">
+            <button id="terminal-tab-btn"
+              class="bottom-tab h-full px-2.5 flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm active"
+              data-panel="terminal-panel">
+              <span class="material-symbols-outlined text-xs">terminal</span>
+              <span>TERMINAL</span>
+            </button>
+            <button id="debug-console-tab-btn"
+              class="bottom-tab h-full px-2.5 flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm"
+              data-panel="debug-console-panel">
+              <span class="material-symbols-outlined text-xs">bug_report</span>
+              <span>DEBUG CONSOLE</span>
+            </button>
+            <button id="stack-tab-btn"
+              class="bottom-tab h-full px-2.5 flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm"
+              data-panel="stack-panel">
+              <span class="material-symbols-outlined text-xs">view_list</span>
+              <span>CALL STACK</span>
+            </button>
+            <button id="git-tab-btn-bottom"
+              class="bottom-tab h-full px-2.5 flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm"
+              data-panel="git-status-panel">
+              <span class="material-symbols-outlined text-xs">analytics</span>
+              <span>GIT STATUS</span>
+            </button>
+          </div>
+
+          <div class="flex items-center space-x-2 text-outline">
+            <span class="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              Workspace: <span id="workspace-path">.</span>
+            </span>
+            <button id="clear-terminal" class="hover:text-on-surface"><span class="material-symbols-outlined text-xs">clear_all</span></button>
+            <button class="hover:text-on-surface"><span class="material-symbols-outlined text-xs">split_scene</span></button>
+          </div>
+        </div>
+
+        <!-- Panels -->
+        <div id="terminal-panel" class="flex-1 bottom-panel">
+          <div id="terminal-output" class="flex-1 p-2.5 overflow-y-auto bg-surface-container-lowest text-on-surface space-y-1 terminal-output select-text">
+            <div class="text-outline">Terminal ready. Type a command below.</div>
+          </div>
+        </div>
+        <div id="debug-console-panel" class="flex-1 bottom-panel hidden">
+          <div class="flex-1 p-2.5 overflow-y-auto bg-surface-container-lowest text-on-surface">
+            <div class="text-outline">Debug console output will appear here.</div>
+          </div>
+        </div>
+        <div id="stack-panel" class="flex-1 bottom-panel hidden">
+          <div class="flex-1 p-2.5 overflow-y-auto bg-surface-container-lowest text-on-surface">
+            <div class="text-outline">Call stack not available.</div>
+          </div>
+        </div>
+        <div id="git-status-panel" class="flex-1 bottom-panel hidden">
+          <div class="flex-1 p-2.5 overflow-y-auto bg-surface-container-lowest text-on-surface">
+            <div class="text-outline">Git status:</div>
+            <pre id="git-status-output" class="text-on-surface-variant text-xs mt-1"></pre>
+            <button id="git-refresh-btn" class="mt-2 px-2 py-0.5 bg-primary text-on-primary rounded text-xs">Refresh</button>
+            <button id="git-commit-btn" class="ml-2 px-2 py-0.5 bg-surface-container-high text-on-surface rounded text-xs border border-outline-variant">Commit All</button>
+            <button id="git-reset-btn" class="ml-2 px-2 py-0.5 bg-error-container text-error rounded text-xs">Discard All</button>
+          </div>
+        </div>
+
+        <div class="h-6 px-space-md bg-surface-container-low border-t border-outline-variant flex items-center">
+          <input id="terminal-input" type="text" class="w-full bg-transparent text-on-surface text-xs font-mono focus:outline-none" placeholder="Enter command..." />
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SETTINGS ==================== -->
+<main id="settings-view" class="settings-view hidden flex-1 overflow-y-auto text-on-surface">
+  <div class="w-full max-w-5xl mx-auto px-6 py-8 lg:px-12">
+    <div class="flex items-start justify-between gap-4 mb-8">
+      <div>
+        <p class="text-label-sm uppercase tracking-widest text-primary mb-2">Workspace settings</p>
+        <h1 class="text-2xl font-semibold text-on-surface">Settings</h1>
+        <p class="text-sm text-on-surface-variant mt-1">Configure your AgentForge workspace</p>
+      </div>
+      <button id="settings-back-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 text-label-md text-on-surface-variant border border-outline-variant rounded-DEFAULT hover:text-on-surface hover:bg-surface-container transition-colors" title="Back to workbench">
+        <span class="material-symbols-outlined text-sm">arrow_back</span>
+        Workbench
+      </button>
+    </div>
+
+    <div class="flex flex-wrap gap-1 border-b border-outline-variant mb-8">
+      <button class="settings-nav-item border-l-2 border-transparent px-4 py-2 text-label-md text-on-surface-variant hover:text-on-surface" data-settings-tab="agent">Agent</button>
+      <button class="settings-nav-item border-l-2 border-transparent px-4 py-2 text-label-md text-on-surface-variant hover:text-on-surface" data-settings-tab="editor">Editor</button>
+      <button class="settings-nav-item border-l-2 border-transparent px-4 py-2 text-label-md text-on-surface-variant hover:text-on-surface" data-settings-tab="build">Build</button>
+      <button class="settings-nav-item active border-l-2 border-transparent px-4 py-2 text-label-md" data-settings-tab="theme">Theme</button>
+      <button class="settings-nav-item border-l-2 border-transparent px-4 py-2 text-label-md text-on-surface-variant hover:text-on-surface" data-settings-tab="keys">API Keys</button>
+    </div>
+
+    <section data-settings-panel="theme" class="max-w-3xl space-y-8">
+      <div>
+        <h2 class="text-lg font-semibold">Appearance</h2>
+        <p class="text-sm text-on-surface-variant mt-1">Customize the look and feel of AgentForge</p>
+      </div>
+      <div class="border-t border-outline-variant pt-5">
+        <label class="text-label-md font-semibold text-on-surface">Theme</label>
+        <div class="flex flex-wrap gap-2 mt-3" role="group" aria-label="Theme">
+          <button class="theme-option active px-4 py-2 text-label-md border border-primary bg-primary/10 text-primary rounded-DEFAULT" data-theme="dark">Dark</button>
+          <button class="theme-option px-4 py-2 text-label-md border border-outline-variant text-on-surface-variant rounded-DEFAULT hover:bg-surface-container" data-theme="light">Light</button>
+          <button class="theme-option px-4 py-2 text-label-md border border-outline-variant text-on-surface-variant rounded-DEFAULT hover:bg-surface-container" data-theme="system">System</button>
+        </div>
+      </div>
+      <div class="border-t border-outline-variant pt-5">
+        <label class="text-label-md font-semibold text-on-surface">Accent Color</label>
+        <div class="flex items-center gap-4 mt-4" role="group" aria-label="Accent Color">
+          <button class="accent-swatch active w-6 h-6 rounded-full bg-cyan-400" data-accent="#4cd7f6" title="Cyan"></button>
+          <button class="accent-swatch w-6 h-6 rounded-full bg-emerald-400" data-accent="#34d399" title="Emerald"></button>
+          <button class="accent-swatch w-6 h-6 rounded-full bg-amber-400" data-accent="#fbbf24" title="Amber"></button>
+          <button class="accent-swatch w-6 h-6 rounded-full bg-rose-400" data-accent="#fb7185" title="Rose"></button>
+          <button class="accent-swatch w-6 h-6 rounded-full bg-violet-400" data-accent="#a78bfa" title="Violet"></button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- ==================== TASKS ==================== -->
+<main id="tasks-view" class="settings-view hidden flex-1 overflow-y-auto text-on-surface">
+  <div class="w-full max-w-5xl mx-auto px-6 py-8 lg:px-12">
+    <div class="flex items-start justify-between gap-4 mb-8">
+      <div>
+        <p class="text-label-sm uppercase tracking-widest text-primary mb-2">Agent operations</p>
+        <h1 class="text-2xl font-semibold text-on-surface">Tasks</h1>
+        <p class="text-sm text-on-surface-variant mt-1">Manage your agent task queue</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="new-task-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-md bg-primary text-on-primary font-semibold rounded-DEFAULT hover:bg-primary-fixed-dim transition-colors">
+          <span class="material-symbols-outlined text-sm">add</span>
+          New Task
+        </button>
+        <button id="tasks-back-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 text-label-md text-on-surface-variant border border-outline-variant rounded-DEFAULT hover:text-on-surface hover:bg-surface-container transition-colors" title="Back to workbench">
+          <span class="material-symbols-outlined text-sm">arrow_back</span>
+          Workbench
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-b border-outline-variant mb-5">
+      <div class="flex items-center gap-5">
+        <span class="text-label-md text-on-surface-variant">Filter</span>
+        <button class="task-filter active border-b-2 border-transparent py-3 text-label-md" data-task-filter="all">All</button>
+        <button class="task-filter border-b-2 border-transparent py-3 text-label-md text-on-surface-variant" data-task-filter="running">Running <span class="text-primary">(2)</span></button>
+        <button class="task-filter border-b-2 border-transparent py-3 text-label-md text-on-surface-variant" data-task-filter="queued">Queued <span>(3)</span></button>
+        <button class="task-filter border-b-2 border-transparent py-3 text-label-md text-on-surface-variant" data-task-filter="completed">Completed <span>(2)</span></button>
+        <button class="task-filter border-b-2 border-transparent py-3 text-label-md text-on-surface-variant" data-task-filter="failed">Failed <span class="text-error">(1)</span></button>
+      </div>
+    </div>
+
+    <div id="task-list" class="space-y-3">
+      <article class="task-card border border-outline-variant bg-surface-container-low rounded-lg p-5" data-task-status="running">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-base font-semibold">Fix null pointer exception in UserService</h2>
+            <p class="text-sm text-on-surface-variant mt-2">The getUserById method throws NPE when user is not found in database</p>
+          </div>
+          <span class="text-label-sm uppercase text-primary bg-primary/10 border border-primary/30 px-2 py-1 rounded">Running</span>
+        </div>
+        <div class="mt-5 flex items-center gap-4">
+          <div class="flex-1"><div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden"><div class="h-full bg-primary" style="width:65%"></div></div></div>
+          <span class="text-label-md text-primary">65%</span>
+          <span class="text-label-sm uppercase text-error">critical</span>
+          <span class="text-label-sm text-on-surface-variant">5m</span>
+        </div>
+        <div class="flex items-center gap-2 mt-4 text-code-xs text-on-surface-variant">
+          <span class="material-symbols-outlined text-sm text-primary">description</span> UserService.ts
+          <span class="material-symbols-outlined text-sm text-primary">description</span> User.ts
+        </div>
+      </article>
+
+      <article class="task-card border border-outline-variant bg-surface-container-low rounded-lg p-5" data-task-status="running">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-base font-semibold">Build payment integration module</h2>
+            <p class="text-sm text-on-surface-variant mt-2">Implement Stripe payment processing with webhook handlers</p>
+          </div>
+          <span class="text-label-sm uppercase text-primary bg-primary/10 border border-primary/30 px-2 py-1 rounded">Running</span>
+        </div>
+        <div class="mt-5 flex items-center gap-4">
+          <div class="flex-1"><div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden"><div class="h-full bg-primary" style="width:40%"></div></div></div>
+          <span class="text-label-md text-primary">40%</span>
+          <span class="text-label-sm uppercase text-amber-400">high</span>
+          <span class="text-label-sm text-on-surface-variant">15m</span>
+        </div>
+        <div class="flex items-center gap-2 mt-4 text-code-xs text-on-surface-variant">
+          <span class="material-symbols-outlined text-sm text-primary">description</span> payments.ts
+          <span class="material-symbols-outlined text-sm text-primary">description</span> stripe.ts
+          <span class="text-outline">+1 more</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="h-5 bg-surface-container-lowest border-t border-outline-variant px-space-md flex items-center justify-between text-[11px] font-mono text-outline shrink-0 z-50">
+  <div class="flex items-center gap-3">
+    <span class="flex items-center gap-1 text-primary">
+      <span class="material-symbols-outlined text-xs">sync</span>
+      <span>AetherIDE v4.2 Core Active</span>
+    </span>
+    <span>•</span>
+    <span id="footer-errors" class="text-emerald-400">0 Errors</span>
+    <span>•</span>
+    <span>Port: 5000</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="footer-spaces">Spaces: 4</span>
+    <span>UTF-8</span>
+    <span id="footer-lang">plain</span>
+    <span class="text-on-surface">Bell: Silent</span>
+  </div>
+</footer>
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script>
+  (function(){
+    'use strict';
+
+    // -------- API Helpers --------
+    async function apiFetch(endpoint, options = {}) {
+      const res = await fetch(endpoint, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      return res.json();
+    }
+
+    // -------- State --------
+    const state = {
+      files: [],
+      openFiles: [],        // { path, content, modified }
+      activeFileIndex: -1,
+      gitBranch: 'main',
+      gitChanges: 0,
+      agentBusy: false,
+      terminalHistory: [],
+      historyIndex: -1,
+      currentPatch: null,   // { diff, summary }
+    };
+
+    // -------- DOM refs --------
+    const fileTreeEl = document.getElementById('file-tree');
+    const editorTabsBar = document.getElementById('editor-tabs-bar');
+    const lineNumbersEl = document.getElementById('line-numbers');
+    const editorTextarea = document.getElementById('editor-textarea');
+    const breadcrumb = document.getElementById('breadcrumb');
+    const cursorPos = document.getElementById('cursor-position');
+    const fileLang = document.getElementById('file-lang');
+    const footerLang = document.getElementById('footer-lang');
+    const footerSpaces = document.getElementById('footer-spaces');
+    const gitBranchSpan = document.getElementById('git-branch');
+    const gitChangesSpan = document.getElementById('git-changes');
+    const gitBadge = document.getElementById('git-badge');
+    const diffCountSpan = document.getElementById('diff-count');
+    const patchBanner = document.getElementById('patch-banner');
+    const patchSummary = document.getElementById('patch-summary');
+    const agentOutput = document.getElementById('agent-output');
+    const agentInput = document.getElementById('agent-input');
+    const agentSendBtn = document.getElementById('agent-send-btn');
+    const agentStatusText = document.getElementById('agent-status-text');
+    const agentLed = document.getElementById('agent-led');
+    const agentContextTokens = document.getElementById('agent-context-tokens');
+    const terminalOutput = document.getElementById('terminal-output');
+    const terminalInput = document.getElementById('terminal-input');
+    const gitStatusOutput = document.getElementById('git-status-output');
+    const projectName = document.getElementById('project-name');
+    const workspacePath = document.getElementById('workspace-path');
+    const tokenCount = document.getElementById('token-count');
+    const tokenMeter = document.getElementById('token-meter');
+    const workbenchView = document.getElementById('workbench-view');
+    const settingsView = document.getElementById('settings-view');
+    const tasksView = document.getElementById('tasks-view');
+
+    // -------- Update Status Bar --------
+    function updateStatusBar() {
+      gitBranchSpan.textContent = state.gitBranch;
+      gitChangesSpan.textContent = state.gitChanges > 0 ? '*' : '';
+      gitBadge.textContent = state.gitChanges;
+      diffCountSpan.textContent = state.gitChanges;
+      agentStatusText.textContent = state.agentBusy ? 'Working' : 'Idle';
+      agentLed.className = 'w-2 h-2 rounded-full ' + (state.agentBusy ? 'bg-primary animate-pulse' : 'bg-surface-container-highest');
+    }
+
+    // -------- Load Project --------
+    async function loadProject() {
+      try {
+        const data = await apiFetch('/api/project');
+        state.files = data.files || [];
+        state.gitBranch = data.git.branch || 'main';
+        state.gitChanges = data.git.changes || 0;
+        projectName.textContent = data.workspace.split('/').pop() || 'workspace';
+        workspacePath.textContent = data.workspace;
+        renderFileTree(state.files);
+        updateStatusBar();
+        refreshGitStatus();
+      } catch (err) {
+        console.error('Failed to load project:', err);
+        fileTreeEl.innerHTML = `<div class="text-outline p-2">Failed to load project</div>`;
+      }
+    }
+
+    async function chooseWorkspace() {
+      try {
+        const data = await apiFetch('/api/workspace/select', { method: 'POST' });
+        if (data.ok && !data.cancelled) {
+          state.openFiles = [];
+          state.activeFileIndex = -1;
+          renderTabs();
+          renderEditor();
+          await loadProject();
+        }
+      } catch (err) {
+        alert('Unable to choose workspace: ' + err);
+      }
+    }
+
+    // -------- Render File Tree --------
+    function renderFileTree(files) {
+      const tree = {};
+      files.forEach(rel => {
+        const parts = rel.split('/');
+        let current = tree;
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (i === parts.length - 1) {
+            if (!current._files) current._files = [];
+            current._files.push(part);
+          } else {
+            if (!current[part]) current[part] = {};
+            current = current[part];
+          }
+        }
+      });
+
+      function renderNode(node, pathParts, indent = 0) {
+        let html = '';
+        const keys = Object.keys(node).filter(k => k !== '_files');
+        keys.sort();
+        for (const key of keys) {
+          const isFolder = typeof node[key] === 'object';
+          if (isFolder) {
+            const fullPath = [...pathParts, key].join('/');
+            html += `<div class="file-tree-item" style="padding-left: ${indent*1.5}rem" data-path="${fullPath}" data-type="folder">
+              <span class="material-symbols-outlined text-xs text-outline">folder</span>
+              <span>${key}</span>
+            </div>`;
+            html += renderNode(node[key], [...pathParts, key], indent + 1);
+          }
+        }
+        if (node._files) {
+          node._files.sort();
+          for (const fname of node._files) {
+            const fullPath = [...pathParts, fname].join('/');
+            html += `<div class="file-tree-item" style="padding-left: ${indent*1.5}rem" data-path="${fullPath}" data-type="file">
+              <span class="material-symbols-outlined text-xs text-amber-400">code</span>
+              <span>${fname}</span>
+            </div>`;
+          }
+        }
+        return html;
+      }
+
+      fileTreeEl.innerHTML = renderNode(tree, []);
+      fileTreeEl.querySelectorAll('.file-tree-item[data-type="file"]').forEach(el => {
+        el.addEventListener('click', () => {
+          const path = el.dataset.path;
+          openFile(path);
+        });
+      });
+    }
+
+    // -------- Open / Close / Save Files --------
+    function openFile(path) {
+      let idx = state.openFiles.findIndex(f => f.path === path);
+      if (idx === -1) {
+        idx = state.openFiles.length;
+        state.openFiles.push({ path, content: '', modified: false });
+      }
+      state.activeFileIndex = idx;
+      if (!state.openFiles[idx].content) {
+        apiFetch(`/api/file?path=${encodeURIComponent(path)}`)
+          .then(data => {
+            if (data.ok) {
+              state.openFiles[idx].content = data.content;
+              renderEditor();
+              renderTabs();
+            } else {
+              alert('Failed to load file: ' + data.error);
+            }
+          })
+          .catch(err => alert('Error loading file: ' + err));
+      } else {
+        renderEditor();
+        renderTabs();
+      }
+    }
+
+    function closeFile(idx) {
+      const file = state.openFiles[idx];
+      if (file.modified) {
+        if (!confirm(`File "${file.path}" has unsaved changes. Close without saving?`)) return;
+      }
+      state.openFiles.splice(idx, 1);
+      if (state.activeFileIndex === idx) {
+        state.activeFileIndex = -1;
+        if (state.openFiles.length > 0) {
+          state.activeFileIndex = Math.min(idx, state.openFiles.length - 1);
+        }
+      } else if (state.activeFileIndex > idx) {
+        state.activeFileIndex--;
+      }
+      renderTabs();
+      renderEditor();
+    }
+
+    function saveCurrentFile() {
+      if (state.activeFileIndex < 0) return;
+      const file = state.openFiles[state.activeFileIndex];
+      if (!file.modified) return;
+      const content = editorTextarea.value;
+      apiFetch('/api/file', {
+        method: 'POST',
+        body: JSON.stringify({ path: file.path, content })
+      })
+      .then(data => {
+        if (data.ok) {
+          file.content = content;
+          file.modified = false;
+          renderTabs();
+          updateStatusBar();
+        } else {
+          alert('Failed to save: ' + data.error);
+        }
+      })
+      .catch(err => alert('Error saving: ' + err));
+    }
+
+    function renderEditor() {
+      if (state.activeFileIndex < 0 || state.activeFileIndex >= state.openFiles.length) {
+        editorTextarea.value = '';
+        lineNumbersEl.innerHTML = '';
+        return;
+      }
+      const file = state.openFiles[state.activeFileIndex];
+      editorTextarea.value = file.content;
+      updateLineNumbers();
+      updateBreadcrumb(file.path);
+      const ext = file.path.split('.').pop() || 'txt';
+      const lang = ext === 'py' ? 'python' : ext;
+      fileLang.textContent = lang;
+      footerLang.textContent = lang;
+      updateCursorPosition();
+    }
+
+    function updateLineNumbers() {
+      const lines = editorTextarea.value.split('\n');
+      let nums = '';
+      for (let i = 1; i <= lines.length; i++) {
+        nums += i + '\n';
+      }
+      lineNumbersEl.textContent = nums;
+      lineNumbersEl.scrollTop = editorTextarea.scrollTop;
+    }
+
+    function updateCursorPosition() {
+      const pos = editorTextarea.selectionStart;
+      const text = editorTextarea.value.substring(0, pos);
+      const lines = text.split('\n');
+      const row = lines.length;
+      const col = lines[lines.length-1].length + 1;
+      cursorPos.textContent = `Ln ${row}, Col ${col}`;
+    }
+
+    function updateBreadcrumb(path) {
+      const parts = path.split('/');
+      let html = '<span>workspace</span>';
+      for (let i = 0; i < parts.length; i++) {
+        html += `<span class="material-symbols-outlined text-xs text-outline">chevron_right</span>`;
+        html += `<span>${parts[i]}</span>`;
+      }
+      breadcrumb.innerHTML = html;
+    }
+
+    function renderTabs() {
+      let html = '';
+      state.openFiles.forEach((f, idx) => {
+        const isActive = idx === state.activeFileIndex;
+        const mod = f.modified ? ' *' : '';
+        html += `<div class="tab-item ${isActive ? 'active' : ''}" data-index="${idx}">
+          <span>${f.path.split('/').pop()}${mod}</span>
+          <span class="close-tab" data-index="${idx}"><span class="material-symbols-outlined text-xs">close</span></span>
+        </div>`;
+      });
+      editorTabsBar.innerHTML = html;
+      editorTabsBar.querySelectorAll('.tab-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.close-tab')) return;
+          const idx = parseInt(el.dataset.index);
+          if (!isNaN(idx)) {
+            state.activeFileIndex = idx;
+            renderEditor();
+            renderTabs();
+          }
+        });
+      });
+      editorTabsBar.querySelectorAll('.close-tab').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(el.dataset.index);
+          if (!isNaN(idx)) {
+            closeFile(idx);
+          }
+        });
+      });
+    }
+
+    // -------- Terminal --------
+    async function runTerminalCommand(cmd) {
+      if (!cmd.trim()) return;
+      appendTerminalLine(`$ ${cmd}`, 'text-emerald-400');
+      terminalInput.value = '';
+      try {
+        const data = await apiFetch('/api/terminal', {
+          method: 'POST',
+          body: JSON.stringify({ command: cmd })
+        });
+        if (data.ok) {
+          if (data.stdout) appendTerminalLine(data.stdout, 'text-on-surface');
+          if (data.stderr) appendTerminalLine(data.stderr, 'text-red-400');
+          appendTerminalLine(`[exit ${data.exit_code}]`, 'text-outline');
+        } else {
+          appendTerminalLine(`Error: ${data.error}`, 'text-red-400');
+        }
+      } catch (err) {
+        appendTerminalLine(`Error: ${err}`, 'text-red-400');
+      }
+    }
+
+    function appendTerminalLine(text, className = 'text-on-surface-variant') {
+      if (!terminalOutput) return;
+      if (text === undefined || text === null) return;
+      const lines = String(text).split('\n');
+      lines.forEach(line => {
+        const div = document.createElement('div');
+        div.className = className;
+        div.textContent = line || ' ';
+        terminalOutput.appendChild(div);
+      });
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    // -------- Git --------
+    async function refreshGitStatus() {
+      try {
+        const data = await apiFetch('/api/git/status');
+        if (data.ok) {
+          state.gitBranch = data.branch;
+          state.gitChanges = data.changes;
+          gitStatusOutput.textContent = data.stdout || 'No changes';
+          updateStatusBar();
+        } else {
+          gitStatusOutput.textContent = 'Error: ' + data.error;
+        }
+      } catch (err) {
+        gitStatusOutput.textContent = 'Error: ' + err;
+      }
+    }
+
+    async function showDiff() {
+      try {
+        const data = await apiFetch('/api/git/diff');
+        if (data.ok) {
+          const diff = data.stdout || 'No changes to show.';
+          // Show diff in agent output
+          agentOutput.innerHTML += `<div class="text-primary font-bold">--- Git Diff ---</div><pre class="text-on-surface-variant text-xs">${diff}</pre>`;
+          agentOutput.scrollTop = agentOutput.scrollHeight;
+          if (diff.trim()) {
+            patchBanner.classList.remove('hidden');
+            patchSummary.textContent = `${state.gitChanges} file(s) modified.`;
+            state.currentPatch = { diff };
+          } else {
+            patchBanner.classList.add('hidden');
+            state.currentPatch = null;
+          }
+        } else {
+          // Show error in agent output
+          agentOutput.innerHTML += `<div class="text-red-400">Error fetching diff: ${data.error}</div>`;
+          agentOutput.scrollTop = agentOutput.scrollHeight;
+        }
+      } catch (err) {
+        agentOutput.innerHTML += `<div class="text-red-400">Error: ${err}</div>`;
+        agentOutput.scrollTop = agentOutput.scrollHeight;
+      }
+    }
+
+    async function acceptPatch() {
+      if (!state.currentPatch) {
+        alert('No patch to accept.');
+        return;
+      }
+      const msg = prompt('Commit message:', 'Agent patch applied');
+      if (msg === null) return;
+      try {
+        const data = await apiFetch('/api/git/commit', {
+          method: 'POST',
+          body: JSON.stringify({ message: msg })
+        });
+        if (data.ok) {
+          alert('Patch committed.');
+          patchBanner.classList.add('hidden');
+          state.currentPatch = null;
+          refreshGitStatus();
+          loadProject();
+        } else {
+          alert('Commit failed: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error: ' + err);
+      }
+    }
+
+    async function rejectPatch() {
+      if (!confirm('Discard all uncommitted changes?')) return;
+      try {
+        const data = await apiFetch('/api/git/reset', {
+          method: 'POST',
+          body: JSON.stringify({ hard: true })
+        });
+        if (data.ok) {
+          alert('Changes discarded.');
+          patchBanner.classList.add('hidden');
+          state.currentPatch = null;
+          refreshGitStatus();
+          loadProject();
+        } else {
+          alert('Reset failed: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error: ' + err);
+      }
+    }
+
+    // -------- Agent --------
+    async function sendAgentMessage(msg) {
+      if (!msg.trim() || state.agentBusy) return;
+      state.agentBusy = true;
+      updateStatusBar();
+      agentOutput.innerHTML += `<div class="text-primary font-bold">User:</div><div>${msg}</div>`;
+      agentInput.value = '';
+      agentOutput.scrollTop = agentOutput.scrollHeight;
+      appendTerminalLine(`> agent task: ${msg}`, 'text-primary');
+      try {
+        const response = await fetch('/api/task/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg })
+        });
+        if (!response.ok || !response.body) {
+          throw new Error(`HTTP ${response.status}: unable to open task stream`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+          for (const event of events) {
+            const dataLine = event.split('\n').find(line => line.startsWith('data: '));
+            if (!dataLine) continue;
+            const data = JSON.parse(dataLine.slice(6));
+            if (data.type === 'log') {
+              appendTerminalLine(data.value, 'text-on-surface-variant');
+            } else if (data.type === 'result') {
+              result = data.value;
+            } else if (data.type === 'error') {
+              throw new Error(data.value);
+            }
+          }
+          if (done) break;
+        }
+        if (result) {
+          appendTerminalLine(result, 'text-emerald-400');
+          agentOutput.innerHTML += `<div class="text-primary font-bold">Agent:</div><div>${result}</div>`;
+          agentOutput.scrollTop = agentOutput.scrollHeight;
+          await refreshGitStatus();
+          if (state.gitChanges > 0) {
+            await showDiff();
+          }
+        }
+      } catch (err) {
+        appendTerminalLine(`Agent error: ${err}`, 'text-red-400');
+        agentOutput.innerHTML += `<div class="text-red-400">Error: ${err}</div>`;
+      } finally {
+        state.agentBusy = false;
+        updateStatusBar();
+        agentOutput.scrollTop = agentOutput.scrollHeight;
+        loadProject();
+      }
+    }
+
+    // -------- Search --------
+    async function searchProject(query) {
+      if (!query.trim()) return;
+      try {
+        const data = await apiFetch(`/api/search?q=${encodeURIComponent(query)}`);
+        if (data.ok) {
+          const results = data.results || [];
+          let msg = `Search results for "${query}":\n`;
+          if (results.length === 0) {
+            msg += 'No matches found.';
+          } else {
+            results.forEach(r => {
+              msg += `- ${r.file} (score ${r.score || 0})\n`;
+            });
+          }
+          agentOutput.innerHTML += `<div class="text-primary font-bold">Search:</div><pre class="text-on-surface-variant text-xs">${msg}</pre>`;
+          agentOutput.scrollTop = agentOutput.scrollHeight;
+        } else {
+          alert('Search failed: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error: ' + err);
+      }
+    }
+
+    // -------- Bottom Panel Tabs (Consolidated) --------
+    function switchBottomPanel(panelId, activeTabElement) {
+      // Hide all panels
+      document.querySelectorAll('.bottom-panel').forEach(p => p.classList.add('hidden'));
+      // Show selected panel
+      const panel = document.getElementById(panelId);
+      if (panel) panel.classList.remove('hidden');
+      // Update tabs
+      document.querySelectorAll('.bottom-tab').forEach(tab => {
+        tab.classList.remove('bg-surface', 'text-primary', 'border-t', 'border-primary');
+        tab.classList.add('text-on-surface-variant');
+      });
+      if (activeTabElement) {
+        activeTabElement.classList.remove('text-on-surface-variant');
+        activeTabElement.classList.add('bg-surface', 'text-primary', 'border-t', 'border-primary');
+      }
+    }
+
+    function setSettingsVisible(visible) {
+      workbenchView.classList.toggle('hidden', visible);
+      settingsView.classList.toggle('hidden', !visible);
+      tasksView.classList.add('hidden');
+    }
+
+    function setTasksVisible(visible) {
+      workbenchView.classList.toggle('hidden', visible);
+      settingsView.classList.toggle('hidden', visible);
+      tasksView.classList.toggle('hidden', !visible);
+    }
+
+    function applySettings() {
+      const savedTheme = localStorage.getItem('aetheride-theme') || 'dark';
+      const savedAccent = localStorage.getItem('aetheride-accent') || '#4cd7f6';
+      document.documentElement.dataset.theme = savedTheme;
+      document.documentElement.style.setProperty('--settings-accent', savedAccent);
+      document.querySelectorAll('.theme-option').forEach(option => {
+        const active = option.dataset.theme === savedTheme;
+        option.classList.toggle('active', active);
+        option.classList.toggle('border-primary', active);
+        option.classList.toggle('bg-primary/10', active);
+        option.classList.toggle('text-primary', active);
+      });
+      document.querySelectorAll('.accent-swatch').forEach(swatch => {
+        swatch.classList.toggle('active', swatch.dataset.accent === savedAccent);
+      });
+    }
+
+    // -------- UI Event Binding --------
+    document.getElementById('top-settings-btn').addEventListener('click', () => setSettingsVisible(true));
+    document.getElementById('sidebar-settings-btn').addEventListener('click', () => setSettingsVisible(true));
+    document.getElementById('settings-back-btn').addEventListener('click', () => setSettingsVisible(false));
+    document.getElementById('tasks-tab-btn').addEventListener('click', () => setTasksVisible(true));
+    document.getElementById('tasks-back-btn').addEventListener('click', () => setTasksVisible(false));
+    document.getElementById('new-task-btn').addEventListener('click', () => {
+      const task = prompt('Describe the task for your agent:');
+      if (task && task.trim()) {
+        alert('Task queued: ' + task.trim());
+      }
+    });
+    document.querySelectorAll('.task-filter').forEach(filter => {
+      filter.addEventListener('click', () => {
+        document.querySelectorAll('.task-filter').forEach(item => {
+          item.classList.remove('active');
+          item.classList.add('text-on-surface-variant');
+        });
+        filter.classList.add('active');
+        filter.classList.remove('text-on-surface-variant');
+        const status = filter.dataset.taskFilter;
+        document.querySelectorAll('.task-card').forEach(card => {
+          card.classList.toggle('hidden', status !== 'all' && card.dataset.taskStatus !== status);
+        });
+      });
+    });
+    document.querySelectorAll('.settings-nav-item').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.settings-nav-item').forEach(item => item.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.addEventListener('click', () => {
+        localStorage.setItem('aetheride-theme', option.dataset.theme);
+        applySettings();
+      });
+    });
+    document.querySelectorAll('.accent-swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        localStorage.setItem('aetheride-accent', swatch.dataset.accent);
+        applySettings();
+      });
+    });
+    applySettings();
+
+    // Explorer buttons
+    document.getElementById('choose-workspace-btn').addEventListener('click', chooseWorkspace);
+    document.getElementById('new-file-btn').addEventListener('click', async () => {
+      const name = prompt('New file name:');
+      if (!name) return;
+      try {
+        const data = await apiFetch('/api/file', {
+          method: 'POST',
+          body: JSON.stringify({ path: name, content: '' })
+        });
+        if (data.ok) {
+          loadProject();
+          openFile(name);
+        } else {
+          alert('Failed: ' + data.error);
+        }
+      } catch (err) { alert('Error: ' + err); }
+    });
+
+    document.getElementById('new-folder-btn').addEventListener('click', async () => {
+      const name = prompt('New folder name:');
+      if (!name) return;
+      try {
+        const data = await apiFetch('/api/directory', {
+          method: 'POST',
+          body: JSON.stringify({ path: name })
+        });
+        if (data.ok) {
+          loadProject();
+        } else {
+          alert('Failed: ' + data.error);
+        }
+      } catch (err) { alert('Error: ' + err); }
+    });
+
+    document.getElementById('refresh-explorer').addEventListener('click', loadProject);
+
+    // Save file (Ctrl+S)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveCurrentFile();
+      }
+    });
+
+    // Editor textarea events
+    editorTextarea.addEventListener('input', () => {
+      if (state.activeFileIndex >= 0) {
+        const f = state.openFiles[state.activeFileIndex];
+        if (f.content !== editorTextarea.value) {
+          f.modified = true;
+          renderTabs();
+        }
+      }
+      updateLineNumbers();
+    });
+    editorTextarea.addEventListener('click', updateCursorPosition);
+    editorTextarea.addEventListener('keyup', updateCursorPosition);
+    editorTextarea.addEventListener('scroll', () => {
+      lineNumbersEl.scrollTop = editorTextarea.scrollTop;
+    });
+
+    // Terminal
+    terminalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const cmd = terminalInput.value;
+        runTerminalCommand(cmd);
+        state.terminalHistory.push(cmd);
+        state.historyIndex = state.terminalHistory.length;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (state.historyIndex > 0) {
+          state.historyIndex--;
+          terminalInput.value = state.terminalHistory[state.historyIndex] || '';
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (state.historyIndex < state.terminalHistory.length - 1) {
+          state.historyIndex++;
+          terminalInput.value = state.terminalHistory[state.historyIndex] || '';
+        } else {
+          state.historyIndex = state.terminalHistory.length;
+          terminalInput.value = '';
+        }
+      }
+    });
+
+    document.getElementById('clear-terminal').addEventListener('click', () => {
+      terminalOutput.innerHTML = '<div class="text-outline">Terminal cleared.</div>';
+    });
+
+    // Agent
+    agentSendBtn.addEventListener('click', () => {
+      sendAgentMessage(agentInput.value);
+    });
+    agentInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendAgentMessage(agentInput.value);
+      }
+    });
+
+    // Git buttons
+    document.getElementById('git-refresh-btn').addEventListener('click', refreshGitStatus);
+    document.getElementById('git-commit-btn').addEventListener('click', async () => {
+      const msg = prompt('Commit message:');
+      if (msg === null) return;
+      try {
+        const data = await apiFetch('/api/git/commit', {
+          method: 'POST',
+          body: JSON.stringify({ message: msg })
+        });
+        if (data.ok) {
+          alert('Committed.');
+          refreshGitStatus();
+          loadProject();
+        } else {
+          alert('Failed: ' + data.error);
+        }
+      } catch (err) { alert('Error: ' + err); }
+    });
+    document.getElementById('git-reset-btn').addEventListener('click', rejectPatch);
+
+    // Review Diffs / Deploy Patch
+    document.getElementById('review-diffs-btn').addEventListener('click', showDiff);
+    document.getElementById('deploy-patch-btn').addEventListener('click', acceptPatch);
+    document.getElementById('accept-patch-btn').addEventListener('click', acceptPatch);
+    document.getElementById('reject-patch-btn').addEventListener('click', rejectPatch);
+    document.getElementById('iterate-prompt-btn').addEventListener('click', () => {
+      agentInput.value = 'The previous patch didn\'t work. Please try a different approach.';
+      agentInput.focus();
+    });
+
+    // Run current file
+    document.getElementById('run-current-file').addEventListener('click', () => {
+      if (state.activeFileIndex < 0) return;
+      const file = state.openFiles[state.activeFileIndex];
+      if (file.path.endsWith('.py')) {
+        runTerminalCommand(`python "${file.path}"`);
+        // Switch to terminal tab
+        const terminalTab = document.getElementById('terminal-tab-btn');
+        if (terminalTab) terminalTab.click();
+      } else {
+        alert('Only Python files can be run directly.');
+      }
+    });
+
+    // Bottom tabs switching
+    document.querySelectorAll('.bottom-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panelId = tab.dataset.panel;
+        if (panelId) {
+          switchBottomPanel(panelId, tab);
+        }
+      });
+    });
+
+    // Activity bar
+    document.getElementById('explorer-tab-btn').addEventListener('click', () => {
+      document.getElementById('explorer-pane').scrollIntoView();
+    });
+    document.getElementById('git-tab-btn').addEventListener('click', () => {
+      document.getElementById('git-tab-btn-bottom').click();
+    });
+    document.getElementById('agent-tab-btn').addEventListener('click', () => {
+      document.getElementById('agent-pane').scrollIntoView();
+    });
+    document.getElementById('search-tab-btn').addEventListener('click', () => {
+      document.getElementById('global-search').focus();
+    });
+
+    // Global search
+    document.getElementById('global-search').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = e.target.value;
+        searchProject(q);
+      }
+    });
+
+    // Top menu dropdown actions (using event delegation)
+    document.querySelectorAll('nav .group > button').forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = button.parentElement.querySelector('.dropdown-menu');
+        document.querySelectorAll('.dropdown-menu.show').forEach(openMenu => {
+          if (openMenu !== menu) openMenu.classList.remove('show');
+        });
+        menu.classList.toggle('show');
+      });
+    });
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.dropdown-menu.show').forEach(menu => menu.classList.remove('show'));
+    });
+
+    document.querySelectorAll('.dropdown-menu a[data-action]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const action = el.dataset.action;
+        el.closest('.dropdown-menu').classList.remove('show');
+        switch(action) {
+          case 'new-file': document.getElementById('new-file-btn').click(); break;
+          case 'new-folder': document.getElementById('new-folder-btn').click(); break;
+          case 'choose-workspace': chooseWorkspace(); break;
+          case 'save': saveCurrentFile(); break;
+          case 'save-all': state.openFiles.forEach((f, idx) => { if (f.modified) { state.activeFileIndex = idx; saveCurrentFile(); } }); break;
+          case 'exit': window.close(); break;
+          case 'undo': document.execCommand('undo'); break;
+          case 'redo': document.execCommand('redo'); break;
+          case 'find': alert('Find functionality: use Ctrl+F'); break;
+          case 'replace': alert('Replace functionality'); break;
+          case 'refresh': loadProject(); break;
+          case 'toggle-terminal': document.getElementById('terminal-tab-btn').click(); break;
+          case 'run-file': document.getElementById('run-current-file').click(); break;
+          case 'run-tests': runTerminalCommand('python -m unittest discover'); break;
+          default: break;
+        }
+      });
+    });
+
+    document.getElementById('top-terminal-btn').addEventListener('click', () => {
+      document.getElementById('terminal-tab-btn').click();
+    });
+    document.getElementById('top-agent-btn').addEventListener('click', () => {
+      document.getElementById('agent-pane').scrollIntoView();
+      agentInput.focus();
+    });
+
+    // -------- Initial activation --------
+    // Set terminal as the active bottom tab
+    const terminalTab = document.getElementById('terminal-tab-btn');
+    if (terminalTab) {
+      switchBottomPanel('terminal-panel', terminalTab);
+    }
+
+    // Load project and render
+    loadProject();
+    renderTabs();
+    renderEditor();
+
+    console.log('AetherIDE frontend fully functional.');
+  })();
+</script>
+
+</body>
+</html>
